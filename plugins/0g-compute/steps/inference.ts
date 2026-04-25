@@ -6,7 +6,7 @@ import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
-import { buildBrokerContext, type ZeroGComputeBroker } from "../client-core";
+import { buildBrokerContext, type ZeroGComputeBroker } from "../server-core";
 import type { ZeroGComputeCredentials } from "../credentials";
 
 const LOG_CONTEXT = {

@@ -43,13 +43,13 @@ const {
   processResponse: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock("../../plugins/0g-compute/client-core", () => ({
+vi.mock("../../plugins/0g-compute/server-core", () => ({
   buildBrokerContext: vi.fn(),
 }));
 
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
-import { buildBrokerContext } from "../../plugins/0g-compute/client-core";
+import { buildBrokerContext } from "../../plugins/0g-compute/server-core";
 import {
   resolveZeroGComputeChainId,
   ZERO_G_COMPUTE_DEFAULT_CHAIN_ID,

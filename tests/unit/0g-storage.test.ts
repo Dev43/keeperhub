@@ -28,7 +28,7 @@ vi.mock("@/lib/web3/resolve-org-context", () => ({
   resolveOrganizationContext: vi.fn(),
 }));
 
-vi.mock("../../plugins/0g-storage/client-core", () => ({
+vi.mock("../../plugins/0g-storage/server-core", () => ({
   buildWriteContext: vi.fn(),
   buildReadContext: vi.fn(),
   writeKvEntry: vi.fn(),
@@ -42,7 +42,7 @@ import {
   buildWriteContext,
   uploadBlob,
   writeKvEntry,
-} from "../../plugins/0g-storage/client-core";
+} from "../../plugins/0g-storage/server-core";
 import {
   resolveZeroGChainId,
   resolveZeroGFlowAddress,

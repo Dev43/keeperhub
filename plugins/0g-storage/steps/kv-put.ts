@@ -7,7 +7,7 @@ import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
-import { buildWriteContext, writeKvEntry } from "../client-core";
+import { buildWriteContext, writeKvEntry } from "../server-core";
 import type { ZeroGStorageCredentials } from "../credentials";
 
 const LOG_CONTEXT = {

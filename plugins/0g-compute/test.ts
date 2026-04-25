@@ -1,4 +1,4 @@
-import { getRpcProvider } from "@/lib/rpc/provider-factory";
+import { getRpcUrlByChainId } from "@/lib/rpc/rpc-config";
 import {
   resolveZeroGComputeChainId,
   type ZeroGComputeCredentials,
@@ -14,8 +14,7 @@ export async function testZeroGCompute(
   );
 
   try {
-    const rpcManager = await getRpcProvider({ chainId });
-    const rpcUrl = await rpcManager.resolveActiveRpcUrl();
+    const rpcUrl = getRpcUrlByChainId(chainId);
 
     const response = await fetch(rpcUrl, {
       method: "POST",

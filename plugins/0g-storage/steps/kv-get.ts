@@ -6,7 +6,7 @@ import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
-import { buildReadContext } from "../client-core";
+import { buildReadContext } from "../server-core";
 import type { ZeroGStorageCredentials } from "../credentials";
 
 const LOG_CONTEXT = {
