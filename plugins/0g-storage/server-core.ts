@@ -4,7 +4,6 @@ import {
   Batcher,
   FixedPriceFlow__factory,
   Indexer,
-  KvClient,
   MemData,
 } from "@0gfoundation/0g-ts-sdk";
 import type { Signer } from "ethers";
@@ -14,7 +13,6 @@ import {
   resolveZeroGChainId,
   resolveZeroGFlowAddress,
   resolveZeroGIndexerUrl,
-  resolveZeroGKvNodeUrl,
   type ZeroGStorageCredentials,
 } from "./credentials";
 
@@ -29,10 +27,6 @@ export type ZeroGWriteContext = {
 export type ZeroGWriteSetup =
   | { ok: true; context: ZeroGWriteContext }
   | { ok: false; error: string };
-
-export type ZeroGReadContext = {
-  kv: KvClient;
-};
 
 export async function buildWriteContext(
   credentials: ZeroGStorageCredentials,
@@ -60,12 +54,6 @@ export async function buildWriteContext(
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, error: `Failed to initialize 0G client: ${message}` };
   }
-}
-
-export function buildReadContext(
-  credentials: ZeroGStorageCredentials
-): ZeroGReadContext {
-  return { kv: new KvClient(resolveZeroGKvNodeUrl(credentials)) };
 }
 
 const KV_REPLICAS = 1;

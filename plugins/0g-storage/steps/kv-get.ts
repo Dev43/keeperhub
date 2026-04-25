@@ -1,13 +1,19 @@
 import "server-only";
 
-import { toUtf8Bytes, toUtf8String } from "ethers";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
-import { buildReadContext } from "../server-core";
-import type { ZeroGStorageCredentials } from "../credentials";
+import {
+  resolveZeroGIndexerUrl,
+  type ZeroGStorageCredentials,
+} from "../credentials";
+import {
+  decodeStreamData,
+  findEntry,
+  type StreamWriteEntry,
+} from "./kv-get-core";
 
 const LOG_CONTEXT = {
   plugin_name: "0g-storage",
@@ -16,8 +22,9 @@ const LOG_CONTEXT = {
 } as const;
 
 export type KvGetCoreInput = {
-  streamId: string;
-  key: string;
+  rootHash: string;
+  streamId?: string;
+  key?: string;
   network?: string;
 };
 
@@ -27,54 +34,90 @@ export type KvGetInput = StepInput &
   };
 
 type KvGetResult =
-  | { success: true; value: string | null; version: number | null }
+  | {
+      success: true;
+      value: string | null;
+      streamId: string | null;
+      key: string | null;
+      entries: StreamWriteEntry[];
+      size: number;
+    }
   | { success: false; error: string };
 
-function decodeBase64(data: string): string {
-  try {
-    return toUtf8String(Buffer.from(data, "base64"));
-  } catch {
-    return data;
-  }
-}
+const ROOT_HASH_PATTERN = /^0x[a-fA-F0-9]{64}$/;
 
 async function stepHandler(
   input: KvGetCoreInput,
   credentials: ZeroGStorageCredentials
 ): Promise<KvGetResult> {
-  if (!(input.streamId && input.key)) {
+  if (!input.rootHash) {
     logUserError(
       ErrorCategory.VALIDATION,
-      "[0G Storage] kv-get missing streamId or key",
+      "[0G Storage] kv-get missing rootHash",
       input,
       LOG_CONTEXT
     );
-    return { success: false, error: "streamId and key are required" };
+    return { success: false, error: "rootHash is required" };
   }
 
-  try {
-    const { kv } = buildReadContext(credentials);
-    const result = await kv.getValue(input.streamId, toUtf8Bytes(input.key));
+  if (!ROOT_HASH_PATTERN.test(input.rootHash)) {
+    return {
+      success: false,
+      error: "rootHash must be a 0x-prefixed 32-byte hex string",
+    };
+  }
 
-    if (!result) {
-      return { success: true, value: null, version: null };
+  const indexerUrl = resolveZeroGIndexerUrl(credentials).replace(/\/$/, "");
+  const url = `${indexerUrl}/file?root=${input.rootHash}`;
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      redirect: "follow",
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      logUserError(
+        ErrorCategory.EXTERNAL_SERVICE,
+        "[0G Storage] kv-get HTTP error",
+        { status: response.status, body: text.slice(0, 500) },
+        LOG_CONTEXT
+      );
+      return {
+        success: false,
+        error: `0G Storage download failed: HTTP ${response.status}${
+          text ? ` -- ${text.slice(0, 200)}` : ""
+        }`,
+      };
     }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const decoded = decodeStreamData(buffer);
+    if (!decoded.ok) {
+      return { success: false, error: decoded.error };
+    }
+
+    const match = findEntry(decoded.entries, input.streamId, input.key);
 
     return {
       success: true,
-      value: decodeBase64(result.data),
-      version: result.version,
+      value: match?.value ?? null,
+      streamId: match?.streamId ?? null,
+      key: match?.key ?? null,
+      entries: decoded.entries,
+      size: buffer.length,
     };
   } catch (error) {
     logUserError(
-      ErrorCategory.EXTERNAL_SERVICE,
+      ErrorCategory.NETWORK_RPC,
       "[0G Storage] kv-get failed",
       error,
       LOG_CONTEXT
     );
     return {
       success: false,
-      error: `0G Storage KV get failed: ${getErrorMessage(error)}`,
+      error: `0G Storage download failed: ${getErrorMessage(error)}`,
     };
   }
 }
@@ -97,7 +140,12 @@ export async function kvGetStep(input: KvGetInput): Promise<KvGetResult> {
     () =>
       withStepLogging(input, () =>
         stepHandler(
-          { streamId: input.streamId, key: input.key, network: input.network },
+          {
+            rootHash: input.rootHash,
+            streamId: input.streamId,
+            key: input.key,
+            network: input.network,
+          },
           input.network
             ? { ...credentials, ZERO_G_CHAIN_ID: input.network }
             : credentials

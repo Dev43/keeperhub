@@ -4,7 +4,6 @@ import {
   ZERO_G_DEFAULT_CHAIN_ID,
   ZERO_G_DEFAULT_FLOW_ADDRESS,
   ZERO_G_DEFAULT_INDEXER_URL,
-  ZERO_G_DEFAULT_KV_NODE_URL,
 } from "./credentials";
 import { ZeroGStorageIcon } from "./icon";
 
@@ -45,17 +44,6 @@ const zeroGStoragePlugin: IntegrationPlugin = {
         "Indexer endpoint used to discover storage nodes for blob and KV uploads",
     },
     {
-      id: "kvNodeUrl",
-      label: "0G KV Node URL",
-      type: "text",
-      placeholder: ZERO_G_DEFAULT_KV_NODE_URL,
-      defaultValue: ZERO_G_DEFAULT_KV_NODE_URL,
-      configKey: "kvNodeUrl",
-      envVar: "ZERO_G_KV_NODE_URL",
-      helpText:
-        "KV node JSON-RPC endpoint used by KV reads. Defaults to the 0G Galileo testnet KV node",
-    },
-    {
       id: "flowAddress",
       label: "Flow Contract Address",
       type: "text",
@@ -79,16 +67,28 @@ const zeroGStoragePlugin: IntegrationPlugin = {
     {
       slug: "kv-get",
       label: "KV Get",
-      description: "Read a value from a 0G Storage KV stream",
+      description:
+        "Read a value from 0G Storage by data root hash. Downloads the blob from the public indexer and decodes the StreamData wire format -- no self-hosted KV node required.",
       category: "0G Storage",
       stepFunction: "kvGetStep",
       stepImportPath: "kv-get",
       outputFields: [
         {
           field: "value",
-          description: "Stored value (UTF-8 decoded), or null if not present",
+          description:
+            "Decoded UTF-8 value of the matching write entry, or null if no match",
         },
-        { field: "version", description: "Entry version, or null" },
+        {
+          field: "streamId",
+          description: "Stream ID of the matched write entry",
+        },
+        { field: "key", description: "Key of the matched write entry" },
+        {
+          field: "entries",
+          description:
+            "All write entries decoded from the blob ({streamId, key, value} array)",
+        },
+        { field: "size", description: "Raw blob size in bytes" },
       ],
       configFields: [
         {
@@ -102,21 +102,27 @@ const zeroGStoragePlugin: IntegrationPlugin = {
           ],
         },
         {
-          key: "streamId",
-          label: "Stream ID",
+          key: "rootHash",
+          label: "Root Hash",
           type: "template-input",
-          placeholder: "0x...",
+          placeholder: "0x... or {{KvPut.rootHash}}",
           example:
-            "0x000000000000000000000000000000000000000000000000000000000000f2bd",
+            "0xe841020b75288d3a81f0c4e169158c25d6abe671b23e1f0b07ea0d72cde5dc18",
           required: true,
         },
         {
-          key: "key",
-          label: "Key",
+          key: "streamId",
+          label: "Stream ID (optional filter)",
           type: "template-input",
-          placeholder: "Key or {{NodeName.field}}",
-          example: "phulax/exploit-corpus/v1",
-          required: true,
+          placeholder: "0x... -- omit to return the first write entry",
+          required: false,
+        },
+        {
+          key: "key",
+          label: "Key (optional filter)",
+          type: "template-input",
+          placeholder: "phulax/smoke/hello",
+          required: false,
         },
       ],
     },

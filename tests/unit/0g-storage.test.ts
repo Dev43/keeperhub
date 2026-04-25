@@ -30,7 +30,6 @@ vi.mock("@/lib/web3/resolve-org-context", () => ({
 
 vi.mock("../../plugins/0g-storage/server-core", () => ({
   buildWriteContext: vi.fn(),
-  buildReadContext: vi.fn(),
   writeKvEntry: vi.fn(),
   uploadBlob: vi.fn(),
 }));
@@ -38,7 +37,6 @@ vi.mock("../../plugins/0g-storage/server-core", () => ({
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
 import {
-  buildReadContext,
   buildWriteContext,
   uploadBlob,
   writeKvEntry,
@@ -47,11 +45,9 @@ import {
   resolveZeroGChainId,
   resolveZeroGFlowAddress,
   resolveZeroGIndexerUrl,
-  resolveZeroGKvNodeUrl,
   ZERO_G_DEFAULT_CHAIN_ID,
   ZERO_G_DEFAULT_FLOW_ADDRESS,
   ZERO_G_DEFAULT_INDEXER_URL,
-  ZERO_G_DEFAULT_KV_NODE_URL,
 } from "../../plugins/0g-storage/credentials";
 import { kvGetStep } from "../../plugins/0g-storage/steps/kv-get";
 import { kvPutStep } from "../../plugins/0g-storage/steps/kv-put";
@@ -60,7 +56,6 @@ import { logAppendStep } from "../../plugins/0g-storage/steps/log-append";
 const fetchCredentialsMock = vi.mocked(fetchCredentials);
 const resolveOrgContextMock = vi.mocked(resolveOrganizationContext);
 const buildWriteContextMock = vi.mocked(buildWriteContext);
-const buildReadContextMock = vi.mocked(buildReadContext);
 const writeKvEntryMock = vi.mocked(writeKvEntry);
 const uploadBlobMock = vi.mocked(uploadBlob);
 
@@ -84,7 +79,6 @@ beforeEach(() => {
   fetchCredentialsMock.mockReset();
   resolveOrgContextMock.mockReset();
   buildWriteContextMock.mockReset();
-  buildReadContextMock.mockReset();
   writeKvEntryMock.mockReset();
   uploadBlobMock.mockReset();
   resolveOrgContextMock.mockResolvedValue({
@@ -95,8 +89,6 @@ beforeEach(() => {
   // biome-ignore lint/performance/noDelete: assigning undefined coerces to "undefined" string in process.env
   delete process.env.ZERO_G_INDEXER_URL;
   // biome-ignore lint/performance/noDelete: see above
-  delete process.env.ZERO_G_KV_NODE_URL;
-  // biome-ignore lint/performance/noDelete: see above
   delete process.env.ZERO_G_FLOW_ADDRESS;
   // biome-ignore lint/performance/noDelete: see above
   delete process.env.ZERO_G_CHAIN_ID;
@@ -105,7 +97,6 @@ beforeEach(() => {
 describe("credential resolvers", () => {
   it("returns testnet defaults when nothing is configured", () => {
     expect(resolveZeroGIndexerUrl({})).toBe(ZERO_G_DEFAULT_INDEXER_URL);
-    expect(resolveZeroGKvNodeUrl({})).toBe(ZERO_G_DEFAULT_KV_NODE_URL);
     expect(resolveZeroGFlowAddress({})).toBe(ZERO_G_DEFAULT_FLOW_ADDRESS);
     expect(resolveZeroGChainId({})).toBe(ZERO_G_DEFAULT_CHAIN_ID);
   });
@@ -118,8 +109,8 @@ describe("credential resolvers", () => {
   });
 
   it("falls back to env vars when credentials are blank", () => {
-    process.env.ZERO_G_KV_NODE_URL = "https://kv.env.example";
-    expect(resolveZeroGKvNodeUrl({})).toBe("https://kv.env.example");
+    process.env.ZERO_G_INDEXER_URL = "https://indexer.env.example";
+    expect(resolveZeroGIndexerUrl({})).toBe("https://indexer.env.example");
   });
 
   it("parses chain id from credentials", () => {
@@ -134,55 +125,121 @@ describe("credential resolvers", () => {
 });
 
 describe("kvGetStep", () => {
-  it("rejects empty streamId or key", async () => {
+  const VALID_ROOT =
+    "0xe841020b75288d3a81f0c4e169158c25d6abe671b23e1f0b07ea0d72cde5dc18";
+  const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+  beforeEach(() => {
+    fetchSpy.mockReset();
+  });
+
+  it("rejects an empty rootHash", async () => {
     fetchCredentialsMock.mockResolvedValue({});
 
     const result = await kvGetStep({
-      streamId: "",
-      key: "",
+      rootHash: "",
       integrationId: "int_1",
     });
 
     expect(result).toEqual({
       success: false,
-      error: "streamId and key are required",
+      error: "rootHash is required",
     });
-    expect(buildReadContextMock).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("returns null when the KV node has no entry", async () => {
+  it("rejects a malformed rootHash", async () => {
     fetchCredentialsMock.mockResolvedValue({});
-    buildReadContextMock.mockReturnValue({
-      kv: { getValue: vi.fn().mockResolvedValue(null) },
-    } as unknown as ReturnType<typeof buildReadContext>);
 
     const result = await kvGetStep({
-      streamId: "0xstream",
-      key: "k",
+      rootHash: "0xnothex",
       integrationId: "int_1",
     });
 
-    expect(result).toEqual({ success: true, value: null, version: null });
+    expect(result).toEqual({
+      success: false,
+      error: "rootHash must be a 0x-prefixed 32-byte hex string",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("decodes base64 values from the KV node", async () => {
+  it("downloads the blob and decodes the StreamData wire format", async () => {
     fetchCredentialsMock.mockResolvedValue({});
-    const encoded = Buffer.from("hello", "utf-8").toString("base64");
-    buildReadContextMock.mockReturnValue({
-      kv: {
-        getValue: vi
-          .fn()
-          .mockResolvedValue({ data: encoded, version: 7, size: 5 }),
-      },
-    } as unknown as ReturnType<typeof buildReadContext>);
+    // Wire layout: 8B version | 4B reads=0 | 4B writes=1 |
+    //   32B streamId | 3B keySize=18 | 18B key | 8B valueSize=5 | 5B value
+    const buf = Buffer.alloc(8 + 4 + 4 + 32 + 3 + 18 + 8 + 5);
+    let off = 0;
+    buf.writeBigUInt64BE(BigInt(1), off);
+    off += 8;
+    buf.writeUInt32BE(0, off);
+    off += 4;
+    buf.writeUInt32BE(1, off);
+    off += 4;
+    Buffer.from(
+      "00000000000000000000000000000000000000000000000000000000" +
+        "7068756c",
+      "hex"
+    ).copy(buf, off);
+    off += 32;
+    buf.writeUIntBE(18, off, 3);
+    off += 3;
+    buf.write("phulax/smoke/hello", off, "utf8");
+    off += 18;
+    buf.writeBigUInt64BE(BigInt(5), off);
+    off += 8;
+    buf.write("world", off, "utf8");
+
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)),
+      headers: new Headers({ "content-type": "application/octet-stream" }),
+    } as unknown as Response);
 
     const result = await kvGetStep({
-      streamId: "0xstream",
-      key: "k",
+      rootHash: VALID_ROOT,
       integrationId: "int_1",
     });
 
-    expect(result).toEqual({ success: true, value: "hello", version: 7 });
+    expect(result).toEqual({
+      success: true,
+      value: "world",
+      streamId:
+        "0x000000000000000000000000000000000000000000000000000000007068756c",
+      key: "phulax/smoke/hello",
+      entries: [
+        {
+          streamId:
+            "0x000000000000000000000000000000000000000000000000000000007068756c",
+          key: "phulax/smoke/hello",
+          value: "world",
+        },
+      ],
+      size: buf.length,
+    });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      `${ZERO_G_DEFAULT_INDEXER_URL}/file?root=${VALID_ROOT}`,
+      { method: "GET", redirect: "follow" }
+    );
+  });
+
+  it("propagates indexer HTTP errors with the response body", async () => {
+    fetchCredentialsMock.mockResolvedValue({});
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: () => Promise.resolve("not found"),
+      headers: new Headers(),
+    } as unknown as Response);
+
+    const result = await kvGetStep({
+      rootHash: VALID_ROOT,
+      integrationId: "int_1",
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "0G Storage download failed: HTTP 404 -- not found",
+    });
   });
 });
 
