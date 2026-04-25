@@ -26,7 +26,7 @@ const zeroGComputePlugin: IntegrationPlugin = {
       configKey: "chainId",
       envVar: "ZERO_G_COMPUTE_CHAIN_ID",
       helpText:
-        "0G chain to sign serving-broker requests on. Defaults to 16601 (Galileo testnet); 16661 selects mainnet.",
+        "0G chain to sign serving-broker requests on. Defaults to 16602 (Galileo testnet); 16661 selects mainnet.",
     },
   ],
 
@@ -39,12 +39,12 @@ const zeroGComputePlugin: IntegrationPlugin = {
 
   actions: [
     {
-      slug: "sealed-inference",
-      label: "Sealed Inference",
+      slug: "inference",
+      label: "Inference",
       description:
         "Run a verifiable inference call against a 0G-served model via the serving broker",
-      category: "0G",
-      stepFunction: "sealedInferenceStep",
+      category: "0G Compute",
+      stepFunction: "inferenceStep",
       stepImportPath: "inference",
       outputFields: [
         { field: "output", description: "Model output text" },
@@ -61,6 +61,16 @@ const zeroGComputePlugin: IntegrationPlugin = {
         },
       ],
       configFields: [
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          defaultValue: String(ZERO_G_COMPUTE_DEFAULT_CHAIN_ID),
+          options: [
+            { value: "16602", label: "0G Galileo Testnet (16602)" },
+            { value: "16661", label: "0G Mainnet (16661)" },
+          ],
+        },
         {
           key: "providerAddress",
           label: "Provider Address",

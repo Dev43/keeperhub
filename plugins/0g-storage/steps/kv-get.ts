@@ -18,6 +18,7 @@ const LOG_CONTEXT = {
 export type KvGetCoreInput = {
   streamId: string;
   key: string;
+  network?: string;
 };
 
 export type KvGetInput = StepInput &
@@ -96,8 +97,10 @@ export async function kvGetStep(input: KvGetInput): Promise<KvGetResult> {
     () =>
       withStepLogging(input, () =>
         stepHandler(
-          { streamId: input.streamId, key: input.key },
-          credentials
+          { streamId: input.streamId, key: input.key, network: input.network },
+          input.network
+            ? { ...credentials, ZERO_G_CHAIN_ID: input.network }
+            : credentials
         )
       )
   );

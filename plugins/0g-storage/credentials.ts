@@ -13,9 +13,10 @@ export const ZERO_G_DEFAULT_KV_NODE_URL = "http://3.101.147.150:6789";
 // Flow contract on 0G Galileo testnet. Source: 0g-ts-sdk and docs.0g.ai.
 export const ZERO_G_DEFAULT_FLOW_ADDRESS =
   "0x22E03a6A89B950F1c82ec5e74F8eCa321a105296";
-// Chain id 16_601 = 0G Galileo testnet (seeded in scripts/seed/seed-chains.ts).
-// Mainnet is 16_661.
-export const ZERO_G_DEFAULT_CHAIN_ID = 16_601;
+// Chain id 16_602 = 0G Galileo testnet V3 (eth_chainId on
+// https://evmrpc-testnet.0g.ai returns 0x40da). Seeded in
+// scripts/seed/seed-chains.ts. Mainnet is 16_661.
+export const ZERO_G_DEFAULT_CHAIN_ID = 16_602;
 
 export function resolveZeroGIndexerUrl(
   credentials: ZeroGStorageCredentials

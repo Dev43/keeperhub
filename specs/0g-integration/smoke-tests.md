@@ -27,9 +27,9 @@ Edge cases to confirm before declaring green:
 
 Workflow: Manual trigger -> `log-append`(streamId=test-log, payload='{"hello":"world"}', tag="smoke"). Expect non-null `entryId` and `txHash`. Verify the entry is visible at `${ZERO_G_STORAGE_INDEXER_URL}/log/entries?streamId=test-log&tag=smoke`.
 
-## SMOKE-3 — `0g-compute/sealed-inference` against any 0G-served base model
+## SMOKE-3 — `0g-compute/inference` against any 0G-served base model
 
-Workflow: Manual trigger -> `sealed-inference`(model="qwen2.5-0.5b-instruct", prompt="Reply with the single token OK.", maxTokens=4). Expect `output` contains "OK" and `attestation` is non-null.
+Workflow: Manual trigger -> `inference`(model="qwen2.5-0.5b-instruct", prompt="Reply with the single token OK.", maxTokens=4). Expect `output` contains "OK" and `attestation` is non-null.
 
 Note: this verifies the plugin works end-to-end inside KeeperHub. Phulax's demo classifier is self-hosted (LoRA-adapted Qwen2.5-0.5B isn't 0G-served), so this smoke test is for the upstream PR audience, not the demo path.
 

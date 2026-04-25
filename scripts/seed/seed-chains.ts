@@ -437,20 +437,20 @@ const DEFAULT_CHAINS: NewChain[] = [
     defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-mainnet" }),
   },
   {
-    chainId: getChainConfigValue("0g-testnet", "chainId", 16_601),
+    chainId: getChainConfigValue("0g-testnet", "chainId", 16_602),
     name: "0G Galileo Testnet",
     symbol: getChainConfigValue("0g-testnet", "symbol", "0G"),
     chainType: "evm",
-    defaultPrimaryRpc: getRpcUrlByChainId(16_601, "primary"),
-    defaultFallbackRpc: getRpcUrlByChainId(16_601, "fallback"),
+    defaultPrimaryRpc: getRpcUrlByChainId(16_602, "primary"),
+    defaultFallbackRpc: getRpcUrlByChainId(16_602, "fallback"),
     defaultPrimaryWss: getWssUrl({
       rpcConfig,
-      jsonKey: CHAIN_CONFIG[16_601].jsonKey,
+      jsonKey: CHAIN_CONFIG[16_602].jsonKey,
       type: "primary",
     }),
     defaultFallbackWss: getWssUrl({
       rpcConfig,
-      jsonKey: CHAIN_CONFIG[16_601].jsonKey,
+      jsonKey: CHAIN_CONFIG[16_602].jsonKey,
       type: "fallback",
     }),
     isTestnet: getChainConfigValue("0g-testnet", "isTestnet", true),
@@ -684,7 +684,7 @@ const EXPLORER_CONFIG_TEMPLATES: Record<
     explorerContractPath: "/address/{address}?tab=contract",
   },
   // 0G Galileo Testnet - Chainscan (Blockscout-family)
-  16_601: {
+  16_602: {
     chainType: "evm",
     explorerUrl: "https://chainscan-galileo.0g.ai",
     explorerApiType: "blockscout",
@@ -782,7 +782,7 @@ async function seedChains() {
     Plasma: 9745,
     "Plasma Testnet": 9746,
     "0G Mainnet": 16_661,
-    "0G Galileo Testnet": 16_601,
+    "0G Galileo Testnet": 16_602,
     Solana: 101,
     "Solana Devnet": 103,
   };

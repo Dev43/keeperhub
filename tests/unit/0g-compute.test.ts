@@ -54,7 +54,7 @@ import {
   resolveZeroGComputeChainId,
   ZERO_G_COMPUTE_DEFAULT_CHAIN_ID,
 } from "../../plugins/0g-compute/credentials";
-import { sealedInferenceStep } from "../../plugins/0g-compute/steps/inference";
+import { inferenceStep } from "../../plugins/0g-compute/steps/inference";
 
 type BrokerSetup = Awaited<ReturnType<typeof buildBrokerContext>>;
 type BrokerContext = Extract<BrokerSetup, { ok: true }>["context"];
@@ -129,11 +129,11 @@ describe("resolveZeroGComputeChainId", () => {
   });
 });
 
-describe("sealedInferenceStep", () => {
+describe("inferenceStep", () => {
   it("requires providerAddress and prompt", async () => {
     fetchCredentialsMock.mockResolvedValue({});
 
-    const result = await sealedInferenceStep({
+    const result = await inferenceStep({
       providerAddress: "",
       prompt: "",
       integrationId: "int_1",
@@ -150,7 +150,7 @@ describe("sealedInferenceStep", () => {
   it("requires execution or organization id in the workflow context", async () => {
     fetchCredentialsMock.mockResolvedValue({});
 
-    const result = await sealedInferenceStep({
+    const result = await inferenceStep({
       providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",
@@ -169,7 +169,7 @@ describe("sealedInferenceStep", () => {
       error: "Failed to initialize 0G compute broker: no wallet for org",
     });
 
-    const result = await sealedInferenceStep({
+    const result = await inferenceStep({
       providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",
@@ -197,7 +197,7 @@ describe("sealedInferenceStep", () => {
       }),
     } as Response);
 
-    const result = await sealedInferenceStep({
+    const result = await inferenceStep({
       providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",
@@ -229,7 +229,7 @@ describe("sealedInferenceStep", () => {
       text: async () => "bad gateway",
     } as Response);
 
-    const result = await sealedInferenceStep({
+    const result = await inferenceStep({
       providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",

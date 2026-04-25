@@ -11,24 +11,25 @@ import type { ZeroGComputeCredentials } from "../credentials";
 
 const LOG_CONTEXT = {
   plugin_name: "0g-compute",
-  action_name: "sealed-inference",
+  action_name: "inference",
   service: "0g-compute",
 } as const;
 
-export type SealedInferenceCoreInput = {
+export type InferenceCoreInput = {
   providerAddress: string;
   prompt: string;
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  network?: string;
 };
 
-export type SealedInferenceInput = StepInput &
-  SealedInferenceCoreInput & {
+export type InferenceInput = StepInput &
+  InferenceCoreInput & {
     integrationId?: string;
   };
 
-type SealedInferenceResult =
+type InferenceResult =
   | {
       success: true;
       output: string;
@@ -66,13 +67,13 @@ async function safeAcknowledge(
 }
 
 async function stepHandler(
-  input: SealedInferenceInput,
+  input: InferenceInput,
   credentials: ZeroGComputeCredentials
-): Promise<SealedInferenceResult> {
+): Promise<InferenceResult> {
   if (!(input.providerAddress && input.prompt)) {
     logUserError(
       ErrorCategory.VALIDATION,
-      "[0G Compute] sealed-inference missing providerAddress or prompt",
+      "[0G Compute] inference missing providerAddress or prompt",
       {
         hasProvider: Boolean(input.providerAddress),
         hasPrompt: Boolean(input.prompt),
@@ -95,21 +96,25 @@ async function stepHandler(
   const orgCtx = await resolveOrganizationContext(
     input._context,
     "[0G Compute]",
-    "sealed-inference"
+    "inference"
   );
   if (!orgCtx.success) {
     return orgCtx;
   }
 
+  const effectiveCredentials: ZeroGComputeCredentials = input.network
+    ? { ...credentials, ZERO_G_COMPUTE_CHAIN_ID: input.network }
+    : credentials;
+
   const setup = await buildBrokerContext(
-    credentials,
+    effectiveCredentials,
     orgCtx.organizationId,
     orgCtx.userId
   );
   if (!setup.ok) {
     logUserError(
       ErrorCategory.CONFIGURATION,
-      "[0G Compute] sealed-inference setup failed",
+      "[0G Compute] inference setup failed",
       setup.error,
       LOG_CONTEXT
     );
@@ -160,7 +165,7 @@ async function stepHandler(
       const text = await response.text().catch(() => "");
       logUserError(
         ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Compute] sealed-inference HTTP error",
+        "[0G Compute] inference HTTP error",
         { status: response.status, body: text.slice(0, 500) },
         LOG_CONTEXT
       );
@@ -206,7 +211,7 @@ async function stepHandler(
   } catch (error) {
     logUserError(
       ErrorCategory.NETWORK_RPC,
-      "[0G Compute] sealed-inference failed",
+      "[0G Compute] inference failed",
       error,
       LOG_CONTEXT
     );
@@ -217,9 +222,9 @@ async function stepHandler(
   }
 }
 
-export async function sealedInferenceStep(
-  input: SealedInferenceInput
-): Promise<SealedInferenceResult> {
+export async function inferenceStep(
+  input: InferenceInput
+): Promise<InferenceResult> {
   "use step";
 
   const credentials = input.integrationId
@@ -231,12 +236,12 @@ export async function sealedInferenceStep(
   return withPluginMetrics(
     {
       pluginName: "0g-compute",
-      actionName: "sealed-inference",
+      actionName: "inference",
       executionId: input._context?.executionId,
     },
     () => withStepLogging(input, () => stepHandler(input, credentials))
   );
 }
-sealedInferenceStep.maxRetries = 0;
+inferenceStep.maxRetries = 0;
 
 export const _integrationType = "0g-compute";

@@ -58,7 +58,7 @@ export const PUBLIC_RPCS = {
   ZERO_G_MAINNET: "https://evmrpc.0g.ai",
   ZERO_G_MAINNET_FALLBACK: "https://16661.rpc.thirdweb.com",
   ZERO_G_TESTNET: "https://evmrpc-testnet.0g.ai",
-  ZERO_G_TESTNET_FALLBACK: "https://16601.rpc.thirdweb.com",
+  ZERO_G_TESTNET_FALLBACK: "https://16602.rpc.thirdweb.com",
 } as const;
 
 /**
@@ -219,7 +219,7 @@ export const CHAIN_CONFIG: Record<number, ChainConfigEntry> = {
     publicFallback: PUBLIC_RPCS.ZERO_G_MAINNET_FALLBACK,
   },
   // 0G Galileo Testnet (V3)
-  16601: {
+  16602: {
     jsonKey: "0g-testnet",
     envKey: "CHAIN_0G_TESTNET_PRIMARY_RPC",
     fallbackEnvKey: "CHAIN_0G_TESTNET_FALLBACK_RPC",

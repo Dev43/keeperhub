@@ -6,7 +6,7 @@ import {
   Indexer,
   KvClient,
   MemData,
-} from "@0glabs/0g-ts-sdk";
+} from "@0gfoundation/0g-ts-sdk";
 import type { Signer } from "ethers";
 import { initializeWalletSigner } from "@/lib/para/wallet-helpers";
 import { getRpcProvider } from "@/lib/rpc/provider-factory";
@@ -125,6 +125,14 @@ export async function uploadBlob(
   );
   if (error) {
     return { ok: false, error: `0G blob upload failed: ${error.message}` };
+  }
+
+  if ("txHashes" in result) {
+    return {
+      ok: true,
+      txHash: result.txHashes[0] ?? "",
+      rootHash: result.rootHashes[0] ?? "",
+    };
   }
 
   return { ok: true, txHash: result.txHash, rootHash: result.rootHash };

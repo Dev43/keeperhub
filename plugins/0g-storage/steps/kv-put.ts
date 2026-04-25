@@ -20,6 +20,7 @@ export type KvPutCoreInput = {
   streamId: string;
   key: string;
   value: string;
+  network?: string;
 };
 
 export type KvPutInput = StepInput &
@@ -61,8 +62,12 @@ async function stepHandler(
     return orgCtx;
   }
 
+  const effectiveCredentials: ZeroGStorageCredentials = input.network
+    ? { ...credentials, ZERO_G_CHAIN_ID: input.network }
+    : credentials;
+
   const setup = await buildWriteContext(
-    credentials,
+    effectiveCredentials,
     orgCtx.organizationId,
     orgCtx.userId
   );

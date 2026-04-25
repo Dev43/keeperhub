@@ -31,7 +31,7 @@ const zeroGStoragePlugin: IntegrationPlugin = {
       configKey: "chainId",
       envVar: "ZERO_G_CHAIN_ID",
       helpText:
-        "0G chain to sign Flow transactions on. Defaults to 16601 (Galileo testnet); 16661 selects mainnet.",
+        "0G chain to sign Flow transactions on. Defaults to 16602 (Galileo testnet); 16661 selects mainnet.",
     },
     {
       id: "indexerUrl",
@@ -80,7 +80,7 @@ const zeroGStoragePlugin: IntegrationPlugin = {
       slug: "kv-get",
       label: "KV Get",
       description: "Read a value from a 0G Storage KV stream",
-      category: "0G",
+      category: "0G Storage",
       stepFunction: "kvGetStep",
       stepImportPath: "kv-get",
       outputFields: [
@@ -91,6 +91,16 @@ const zeroGStoragePlugin: IntegrationPlugin = {
         { field: "version", description: "Entry version, or null" },
       ],
       configFields: [
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          defaultValue: String(ZERO_G_DEFAULT_CHAIN_ID),
+          options: [
+            { value: "16602", label: "0G Galileo Testnet (16602)" },
+            { value: "16661", label: "0G Mainnet (16661)" },
+          ],
+        },
         {
           key: "streamId",
           label: "Stream ID",
@@ -115,7 +125,7 @@ const zeroGStoragePlugin: IntegrationPlugin = {
       label: "KV Put",
       description:
         "Write a value to a 0G Storage KV stream by submitting an on-chain Flow transaction signed by your KeeperHub wallet",
-      category: "0G",
+      category: "0G Storage",
       stepFunction: "kvPutStep",
       stepImportPath: "kv-put",
       outputFields: [
@@ -123,6 +133,16 @@ const zeroGStoragePlugin: IntegrationPlugin = {
         { field: "rootHash", description: "Data root hash committed on-chain" },
       ],
       configFields: [
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          defaultValue: String(ZERO_G_DEFAULT_CHAIN_ID),
+          options: [
+            { value: "16602", label: "0G Galileo Testnet (16602)" },
+            { value: "16661", label: "0G Mainnet (16661)" },
+          ],
+        },
         {
           key: "streamId",
           label: "Stream ID",
@@ -152,7 +172,7 @@ const zeroGStoragePlugin: IntegrationPlugin = {
       label: "Log Append",
       description:
         "Append an entry to an append-only log by uploading a signed blob to 0G Storage with your KeeperHub wallet",
-      category: "0G",
+      category: "0G Storage",
       stepFunction: "logAppendStep",
       stepImportPath: "log-append",
       outputFields: [

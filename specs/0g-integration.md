@@ -10,7 +10,7 @@ Internal spec for the 0G chain seed and plugins shipped on `feature/0g-integrati
    - `kv-put` — write a KV value (requires `ZERO_G_STORAGE_PRIVATE_KEY`). `maxRetries = 0`.
    - `log-append` — append to an append-only log stream. `maxRetries = 0`.
 3. **`plugins/0g-compute`** — one action:
-   - `sealed-inference` — call a 0G-hosted model and return `{output, attestation, modelHash}`. `maxRetries = 0`.
+   - `inference` — call a 0G-hosted model and return `{output, attestation, modelHash}`. `maxRetries = 0`.
 4. **`plugin-allowlist.json`** — adds `0g-storage` and `0g-compute`.
 5. **Generated** by `pnpm discover-plugins`: `lib/types/integration.ts`, `lib/step-registry.ts`, `lib/codegen-registry.ts`, `plugins/index.ts`, codegen templates.
 
@@ -19,7 +19,7 @@ Internal spec for the 0G chain seed and plugins shipped on `feature/0g-integrati
 - Both plugins use `fetch()` directly against gateway/indexer HTTP endpoints, not `@0glabs/0g-ts-sdk`. Rationale: step files cannot pull heavy SDKs through the workflow bundler (see `plugins/CLAUDE.md` "Step File Rules"), and the SDK has documented gaps around indexer auth flows. When the SDK matures we can swap the inner `fetch` for SDK calls without changing the action surface.
 - `0g-storage` indexer URL defaults to `https://indexer-storage-testnet-turbo.0g.ai` and is overridable via the `ZERO_G_STORAGE_INDEXER_URL` integration field.
 - `0g-compute` gateway URL defaults to `https://compute-testnet.0g.ai` and is overridable via `ZERO_G_COMPUTE_GATEWAY_URL`.
-- The Phulax demo does **not** call `0g-compute/sealed-inference` on the hot path because 0G sealed inference does not currently serve our LoRA-adapted Qwen2.5-0.5B. The plugin still ships in this PR so any KeeperHub user can hit a 0G-served base model from a workflow. The demo workflow calls a self-hosted classifier endpoint via the existing HTTP Request system action.
+- The Phulax demo does **not** call `0g-compute/inference` on the hot path because 0G sealed inference does not currently serve our LoRA-adapted Qwen2.5-0.5B. The plugin still ships in this PR so any KeeperHub user can hit a 0G-served base model from a workflow. The demo workflow calls a self-hosted classifier endpoint via the existing HTTP Request system action.
 
 ## Per-tx detection workflow shape
 

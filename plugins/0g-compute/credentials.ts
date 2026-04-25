@@ -2,9 +2,9 @@ export type ZeroGComputeCredentials = {
   ZERO_G_COMPUTE_CHAIN_ID?: string;
 };
 
-// Chain id 16_601 = 0G Galileo testnet (seeded in scripts/seed/seed-chains.ts).
+// Chain id 16_602 = 0G Galileo testnet V3 (seeded in scripts/seed/seed-chains.ts).
 // Mainnet is 16_661.
-export const ZERO_G_COMPUTE_DEFAULT_CHAIN_ID = 16_601;
+export const ZERO_G_COMPUTE_DEFAULT_CHAIN_ID = 16_602;
 
 export function resolveZeroGComputeChainId(
   credentials: ZeroGComputeCredentials
