@@ -414,6 +414,50 @@ const DEFAULT_CHAINS: NewChain[] = [
     usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "plasma-testnet" }),
     defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "plasma-testnet" }),
   },
+  {
+    chainId: getChainConfigValue("0g-mainnet", "chainId", 16_661),
+    name: "0G Mainnet",
+    symbol: getChainConfigValue("0g-mainnet", "symbol", "0G"),
+    chainType: "evm",
+    defaultPrimaryRpc: getRpcUrlByChainId(16_661, "primary"),
+    defaultFallbackRpc: getRpcUrlByChainId(16_661, "fallback"),
+    defaultPrimaryWss: getWssUrl({
+      rpcConfig,
+      jsonKey: CHAIN_CONFIG[16_661].jsonKey,
+      type: "primary",
+    }),
+    defaultFallbackWss: getWssUrl({
+      rpcConfig,
+      jsonKey: CHAIN_CONFIG[16_661].jsonKey,
+      type: "fallback",
+    }),
+    isTestnet: getChainConfigValue("0g-mainnet", "isTestnet", false),
+    isEnabled: getChainConfigValue("0g-mainnet", "isEnabled", true),
+    usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "0g-mainnet" }),
+    defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-mainnet" }),
+  },
+  {
+    chainId: getChainConfigValue("0g-testnet", "chainId", 16_601),
+    name: "0G Galileo Testnet",
+    symbol: getChainConfigValue("0g-testnet", "symbol", "0G"),
+    chainType: "evm",
+    defaultPrimaryRpc: getRpcUrlByChainId(16_601, "primary"),
+    defaultFallbackRpc: getRpcUrlByChainId(16_601, "fallback"),
+    defaultPrimaryWss: getWssUrl({
+      rpcConfig,
+      jsonKey: CHAIN_CONFIG[16_601].jsonKey,
+      type: "primary",
+    }),
+    defaultFallbackWss: getWssUrl({
+      rpcConfig,
+      jsonKey: CHAIN_CONFIG[16_601].jsonKey,
+      type: "fallback",
+    }),
+    isTestnet: getChainConfigValue("0g-testnet", "isTestnet", true),
+    isEnabled: getChainConfigValue("0g-testnet", "isEnabled", true),
+    usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "0g-testnet" }),
+    defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-testnet" }),
+  },
   // Solana chains (non-EVM - uses SolanaProviderManager)
   {
     chainId: getChainConfigValue("solana-mainnet", "chainId", 101),
@@ -629,6 +673,26 @@ const EXPLORER_CONFIG_TEMPLATES: Record<
     explorerAddressPath: "/address/{address}",
     explorerContractPath: "/address/{address}#code",
   },
+  // 0G Mainnet - Chainscan (Blockscout-family)
+  16_661: {
+    chainType: "evm",
+    explorerUrl: "https://chainscan.0g.ai",
+    explorerApiType: "blockscout",
+    explorerApiUrl: "https://chainscan.0g.ai/api",
+    explorerTxPath: "/tx/{hash}",
+    explorerAddressPath: "/address/{address}",
+    explorerContractPath: "/address/{address}?tab=contract",
+  },
+  // 0G Galileo Testnet - Chainscan (Blockscout-family)
+  16_601: {
+    chainType: "evm",
+    explorerUrl: "https://chainscan-galileo.0g.ai",
+    explorerApiType: "blockscout",
+    explorerApiUrl: "https://chainscan-galileo.0g.ai/api",
+    explorerTxPath: "/tx/{hash}",
+    explorerAddressPath: "/address/{address}",
+    explorerContractPath: "/address/{address}?tab=contract",
+  },
   // Solana Mainnet - Solscan
   101: {
     chainType: "solana",
@@ -717,6 +781,8 @@ async function seedChains() {
     "Avalanche Fuji": 43_113,
     Plasma: 9745,
     "Plasma Testnet": 9746,
+    "0G Mainnet": 16_661,
+    "0G Galileo Testnet": 16_601,
     Solana: 101,
     "Solana Devnet": 103,
   };

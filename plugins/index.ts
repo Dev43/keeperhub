@@ -13,9 +13,11 @@
  * 1. Delete the plugin directory
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  *
- * Discovered plugins: code, discord, math, protocol, safe, sendgrid, slack, telegram, web3, webhook
+ * Discovered plugins: 0g-compute, 0g-storage, code, discord, math, protocol, safe, sendgrid, slack, telegram, web3, webhook
  */
 
+import "./0g-compute";
+import "./0g-storage";
 import "./code";
 import "./discord";
 import "./math";

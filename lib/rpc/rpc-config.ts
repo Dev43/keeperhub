@@ -56,7 +56,7 @@ export const PUBLIC_RPCS = {
   SOLANA_MAINNET: "https://api.mainnet-beta.solana.com",
   SOLANA_DEVNET: "https://api.devnet.solana.com",
   ZERO_G_MAINNET: "https://evmrpc.0g.ai",
-  ZERO_G_MAINNET_FALLBACK: "https://16600.rpc.thirdweb.com",
+  ZERO_G_MAINNET_FALLBACK: "https://16661.rpc.thirdweb.com",
   ZERO_G_TESTNET: "https://evmrpc-testnet.0g.ai",
   ZERO_G_TESTNET_FALLBACK: "https://16601.rpc.thirdweb.com",
 } as const;
@@ -211,7 +211,7 @@ export const CHAIN_CONFIG: Record<number, ChainConfigEntry> = {
     publicDefault: PUBLIC_RPCS.SOLANA_DEVNET,
   },
   // 0G Mainnet (Aristotle)
-  16600: {
+  16661: {
     jsonKey: "0g-mainnet",
     envKey: "CHAIN_0G_MAINNET_PRIMARY_RPC",
     fallbackEnvKey: "CHAIN_0G_MAINNET_FALLBACK_RPC",

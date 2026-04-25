@@ -2,6 +2,8 @@
   "$schema": "./plugin-allowlist.schema.json",
   "description": "Plugin allowlist - only plugins listed here will be enabled",
   "plugins": [
+    "0g-compute",
+    "0g-storage",
     "code",
     "discord",
     "math",
