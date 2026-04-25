@@ -1,6 +1,11 @@
 {
   "version": "1.0.0",
   "steps": {
+    "lib/steps/collect.ts": {
+      "collectStep": {
+        "stepId": "step//./lib/steps/collect//collectStep"
+      }
+    },
     "node_modules/.pnpm/workflow@4.2.0-beta.76_@nestjs+common@11.1.12_reflect-metadata@0.2.2_rxjs@7.8.2__@nestj_bbd8e16e83c63ad42aa3c647cfa7393b/node_modules/workflow/dist/internal/builtins.js": {
       "__builtin_response_array_buffer": {
         "stepId": "__builtin_response_array_buffer"
@@ -12,59 +17,14 @@
         "stepId": "__builtin_response_text"
       }
     },
-    "lib/steps/collect.ts": {
-      "collectStep": {
-        "stepId": "step//./lib/steps/collect//collectStep"
-      }
-    },
-    "plugins/webhook/steps/send-webhook.ts": {
-      "sendWebhookStep": {
-        "stepId": "step//./plugins/webhook/steps/send-webhook//sendWebhookStep"
-      }
-    },
-    "lib/steps/trigger.ts": {
-      "triggerStep": {
-        "stepId": "step//./lib/steps/trigger//triggerStep"
-      }
-    },
-    "lib/steps/enrich-explorer-links.ts": {
-      "enrichExplorerLinks": {
-        "stepId": "step//./lib/steps/enrich-explorer-links//enrichExplorerLinks"
-      }
-    },
     "lib/steps/condition.ts": {
       "conditionStep": {
         "stepId": "step//./lib/steps/condition//conditionStep"
       }
     },
-    "lib/steps/database-query.ts": {
-      "databaseQueryStep": {
-        "stepId": "step//./lib/steps/database-query//databaseQueryStep"
-      }
-    },
-    "lib/steps/for-each.ts": {
-      "forEachStep": {
-        "stepId": "step//./lib/steps/for-each//forEachStep"
-      }
-    },
-    "plugins/0g-storage/steps/kv-get.ts": {
-      "kvGetStep": {
-        "stepId": "step//./plugins/0g-storage/steps/kv-get//kvGetStep"
-      }
-    },
-    "lib/steps/http-request.ts": {
-      "httpRequestStep": {
-        "stepId": "step//./lib/steps/http-request//httpRequestStep"
-      }
-    },
-    "plugins/0g-compute/steps/inference.ts": {
-      "inferenceStep": {
-        "stepId": "step//./plugins/0g-compute/steps/inference//inferenceStep"
-      }
-    },
-    "plugins/0g-storage/steps/kv-put.ts": {
-      "kvPutStep": {
-        "stepId": "step//./plugins/0g-storage/steps/kv-put//kvPutStep"
+    "plugins/slack/steps/send-slack-message.ts": {
+      "sendSlackMessageStep": {
+        "stepId": "step//./plugins/slack/steps/send-slack-message//sendSlackMessageStep"
       }
     },
     "plugins/web3/steps/check-allowance.ts": {
@@ -72,14 +32,104 @@
         "stepId": "step//./plugins/web3/steps/check-allowance//checkAllowanceStep"
       }
     },
-    "plugins/0g-storage/steps/log-append.ts": {
-      "logAppendStep": {
-        "stepId": "step//./plugins/0g-storage/steps/log-append//logAppendStep"
+    "plugins/protocol/steps/protocol-read.ts": {
+      "protocolReadStep": {
+        "stepId": "step//./plugins/protocol/steps/protocol-read//protocolReadStep"
+      }
+    },
+    "plugins/webhook/steps/send-webhook.ts": {
+      "sendWebhookStep": {
+        "stepId": "step//./plugins/webhook/steps/send-webhook//sendWebhookStep"
+      }
+    },
+    "plugins/web3/steps/approve-token.ts": {
+      "approveTokenStep": {
+        "stepId": "step//./plugins/web3/steps/approve-token//approveTokenStep"
+      }
+    },
+    "plugins/math/steps/aggregate.ts": {
+      "aggregateStep": {
+        "stepId": "step//./plugins/math/steps/aggregate//aggregateStep"
+      }
+    },
+    "lib/steps/database-query.ts": {
+      "databaseQueryStep": {
+        "stepId": "step//./lib/steps/database-query//databaseQueryStep"
+      }
+    },
+    "lib/steps/enrich-explorer-links.ts": {
+      "enrichExplorerLinks": {
+        "stepId": "step//./lib/steps/enrich-explorer-links//enrichExplorerLinks"
+      }
+    },
+    "lib/steps/for-each.ts": {
+      "forEachStep": {
+        "stepId": "step//./lib/steps/for-each//forEachStep"
       }
     },
     "plugins/web3/steps/check-balance.ts": {
       "checkBalanceStep": {
         "stepId": "step//./plugins/web3/steps/check-balance//checkBalanceStep"
+      }
+    },
+    "plugins/protocol/steps/protocol-write.ts": {
+      "protocolWriteStep": {
+        "stepId": "step//./plugins/protocol/steps/protocol-write//protocolWriteStep"
+      }
+    },
+    "plugins/safe/steps/get-pending-transactions.ts": {
+      "getPendingTransactionsStep": {
+        "stepId": "step//./plugins/safe/steps/get-pending-transactions//getPendingTransactionsStep"
+      }
+    },
+    "lib/steps/http-request.ts": {
+      "httpRequestStep": {
+        "stepId": "step//./lib/steps/http-request//httpRequestStep"
+      }
+    },
+    "plugins/web3/steps/assess-risk.ts": {
+      "assessRiskStep": {
+        "stepId": "step//./plugins/web3/steps/assess-risk//assessRiskStep"
+      }
+    },
+    "plugins/sendgrid/steps/send-email.ts": {
+      "sendEmailStep": {
+        "stepId": "step//./plugins/sendgrid/steps/send-email//sendEmailStep"
+      }
+    },
+    "plugins/telegram/steps/send-message.ts": {
+      "sendTelegramMessageStep": {
+        "stepId": "step//./plugins/telegram/steps/send-message//sendTelegramMessageStep"
+      }
+    },
+    "plugins/0g-compute/steps/list-providers.ts": {
+      "listProvidersStep": {
+        "stepId": "step//./plugins/0g-compute/steps/list-providers//listProvidersStep"
+      }
+    },
+    "lib/steps/trigger.ts": {
+      "triggerStep": {
+        "stepId": "step//./lib/steps/trigger//triggerStep"
+      }
+    },
+    "plugins/web3/steps/batch-read-contract.ts": {
+      "batchReadContractStep": {
+        "stepId": "step//./plugins/web3/steps/batch-read-contract//batchReadContractStep"
+      }
+    },
+    "plugins/0g-storage/steps/kv-get.ts": {
+      "kvGetStep": {
+        "stepId": "step//./plugins/0g-storage/steps/kv-get//kvGetStep"
+      }
+    },
+    "plugins/0g-storage/steps/kv-put.ts": {
+      "kvPutStep": {
+        "stepId": "step//./plugins/0g-storage/steps/kv-put//kvPutStep"
+      }
+    },
+    "plugins/0g-storage/steps/log-append.ts": {
+      "logAppendStep": {
+        "stepId": "step//./plugins/0g-storage/steps/log-append//logAppendStep"
       }
     },
     "plugins/code/steps/run-code.ts": {
@@ -92,24 +142,9 @@
         "stepId": "step//./plugins/discord/steps/send-message//sendDiscordMessageStep"
       }
     },
-    "plugins/web3/steps/batch-read-contract.ts": {
-      "batchReadContractStep": {
-        "stepId": "step//./plugins/web3/steps/batch-read-contract//batchReadContractStep"
-      }
-    },
     "plugins/web3/steps/decode-calldata.ts": {
       "decodeCalldataStep": {
         "stepId": "step//./plugins/web3/steps/decode-calldata//decodeCalldataStep"
-      }
-    },
-    "plugins/protocol/steps/protocol-read.ts": {
-      "protocolReadStep": {
-        "stepId": "step//./plugins/protocol/steps/protocol-read//protocolReadStep"
-      }
-    },
-    "plugins/web3/steps/get-transaction.ts": {
-      "getTransactionStep": {
-        "stepId": "step//./plugins/web3/steps/get-transaction//getTransactionStep"
       }
     },
     "plugins/web3/steps/check-token-balance.ts": {
@@ -117,39 +152,9 @@
         "stepId": "step//./plugins/web3/steps/check-token-balance//checkTokenBalanceStep"
       }
     },
-    "plugins/web3/steps/query-transactions.ts": {
-      "queryTransactionsStep": {
-        "stepId": "step//./plugins/web3/steps/query-transactions//queryTransactionsStep"
-      }
-    },
-    "plugins/math/steps/aggregate.ts": {
-      "aggregateStep": {
-        "stepId": "step//./plugins/math/steps/aggregate//aggregateStep"
-      }
-    },
-    "plugins/safe/steps/get-pending-transactions.ts": {
-      "getPendingTransactionsStep": {
-        "stepId": "step//./plugins/safe/steps/get-pending-transactions//getPendingTransactionsStep"
-      }
-    },
-    "plugins/web3/steps/query-events.ts": {
-      "queryEventsStep": {
-        "stepId": "step//./plugins/web3/steps/query-events//queryEventsStep"
-      }
-    },
-    "plugins/protocol/steps/protocol-write.ts": {
-      "protocolWriteStep": {
-        "stepId": "step//./plugins/protocol/steps/protocol-write//protocolWriteStep"
-      }
-    },
-    "plugins/web3/steps/read-contract.ts": {
-      "readContractStep": {
-        "stepId": "step//./plugins/web3/steps/read-contract//readContractStep"
-      }
-    },
-    "plugins/web3/steps/approve-token.ts": {
-      "approveTokenStep": {
-        "stepId": "step//./plugins/web3/steps/approve-token//approveTokenStep"
+    "plugins/0g-compute/steps/fund-provider.ts": {
+      "fundProviderStep": {
+        "stepId": "step//./plugins/0g-compute/steps/fund-provider//fundProviderStep"
       }
     },
     "plugins/web3/steps/transfer-funds.ts": {
@@ -162,19 +167,14 @@
         "stepId": "step//./plugins/web3/steps/transfer-token//transferTokenStep"
       }
     },
-    "plugins/slack/steps/send-slack-message.ts": {
-      "sendSlackMessageStep": {
-        "stepId": "step//./plugins/slack/steps/send-slack-message//sendSlackMessageStep"
+    "plugins/0g-compute/steps/inference.ts": {
+      "inferenceStep": {
+        "stepId": "step//./plugins/0g-compute/steps/inference//inferenceStep"
       }
     },
-    "plugins/telegram/steps/send-message.ts": {
-      "sendTelegramMessageStep": {
-        "stepId": "step//./plugins/telegram/steps/send-message//sendTelegramMessageStep"
-      }
-    },
-    "plugins/sendgrid/steps/send-email.ts": {
-      "sendEmailStep": {
-        "stepId": "step//./plugins/sendgrid/steps/send-email//sendEmailStep"
+    "plugins/web3/steps/get-transaction.ts": {
+      "getTransactionStep": {
+        "stepId": "step//./plugins/web3/steps/get-transaction//getTransactionStep"
       }
     },
     "plugins/web3/steps/write-contract.ts": {
@@ -182,9 +182,19 @@
         "stepId": "step//./plugins/web3/steps/write-contract//writeContractStep"
       }
     },
-    "plugins/web3/steps/assess-risk.ts": {
-      "assessRiskStep": {
-        "stepId": "step//./plugins/web3/steps/assess-risk//assessRiskStep"
+    "plugins/web3/steps/query-transactions.ts": {
+      "queryTransactionsStep": {
+        "stepId": "step//./plugins/web3/steps/query-transactions//queryTransactionsStep"
+      }
+    },
+    "plugins/web3/steps/read-contract.ts": {
+      "readContractStep": {
+        "stepId": "step//./plugins/web3/steps/read-contract//readContractStep"
+      }
+    },
+    "plugins/web3/steps/query-events.ts": {
+      "queryEventsStep": {
+        "stepId": "step//./plugins/web3/steps/query-events//queryEventsStep"
       }
     }
   },

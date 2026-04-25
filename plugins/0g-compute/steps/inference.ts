@@ -1,5 +1,6 @@
 import "server-only";
 
+import { ethers } from "ethers";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
@@ -19,8 +20,8 @@ export type InferenceCoreInput = {
   providerAddress: string;
   prompt: string;
   systemPrompt?: string;
-  maxTokens?: number;
-  temperature?: number;
+  maxTokens?: number | string;
+  temperature?: number | string;
   network?: string;
 };
 
@@ -70,12 +71,14 @@ async function stepHandler(
   input: InferenceInput,
   credentials: ZeroGComputeCredentials
 ): Promise<InferenceResult> {
-  if (!(input.providerAddress && input.prompt)) {
+  const providerAddress = input.providerAddress?.trim() ?? "";
+
+  if (!(providerAddress && input.prompt)) {
     logUserError(
       ErrorCategory.VALIDATION,
       "[0G Compute] inference missing providerAddress or prompt",
       {
-        hasProvider: Boolean(input.providerAddress),
+        hasProvider: Boolean(providerAddress),
         hasPrompt: Boolean(input.prompt),
       },
       LOG_CONTEXT
@@ -83,6 +86,13 @@ async function stepHandler(
     return {
       success: false,
       error: "providerAddress and prompt are required",
+    };
+  }
+
+  if (!ethers.isAddress(providerAddress)) {
+    return {
+      success: false,
+      error: `providerAddress is not a valid 0x-prefixed address: "${providerAddress}"`,
     };
   }
 
@@ -124,10 +134,10 @@ async function stepHandler(
   const { broker } = setup.context;
 
   try {
-    await safeAcknowledge(broker, input.providerAddress);
+    await safeAcknowledge(broker, providerAddress);
 
     const { endpoint, model } = await broker.inference.getServiceMetadata(
-      input.providerAddress
+      providerAddress
     );
 
     const messages = [
@@ -138,16 +148,22 @@ async function stepHandler(
     ];
 
     const requestBody: Record<string, unknown> = { model, messages };
-    if (typeof input.maxTokens === "number") {
-      requestBody.max_tokens = input.maxTokens;
+    if (input.maxTokens !== undefined && input.maxTokens !== "") {
+      const maxTokens = Number(input.maxTokens);
+      if (Number.isFinite(maxTokens)) {
+        requestBody.max_tokens = maxTokens;
+      }
     }
-    if (typeof input.temperature === "number") {
-      requestBody.temperature = input.temperature;
+    if (input.temperature !== undefined && input.temperature !== "") {
+      const temperature = Number(input.temperature);
+      if (Number.isFinite(temperature)) {
+        requestBody.temperature = temperature;
+      }
     }
 
     const serializedBody = JSON.stringify(requestBody);
     const headers = await broker.inference.getRequestHeaders(
-      input.providerAddress,
+      providerAddress,
       serializedBody
     );
 
@@ -185,7 +201,7 @@ async function stepHandler(
     if (chatId) {
       try {
         const result = await broker.inference.processResponse(
-          input.providerAddress,
+          providerAddress,
           output,
           chatId
         );
@@ -204,7 +220,7 @@ async function stepHandler(
       success: true,
       output,
       model,
-      provider: input.providerAddress,
+      provider: providerAddress,
       chatId,
       verified,
     };

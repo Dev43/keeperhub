@@ -39,6 +39,113 @@ const zeroGComputePlugin: IntegrationPlugin = {
 
   actions: [
     {
+      slug: "list-providers",
+      label: "List Providers",
+      description:
+        "List 0G Compute serving providers (model, endpoint, address, pricing) available on the selected network",
+      category: "0G Compute",
+      stepFunction: "listProvidersStep",
+      stepImportPath: "list-providers",
+      outputFields: [
+        {
+          field: "providers",
+          description:
+            "Array of providers: { address, model, endpoint, serviceType, inputPrice, outputPrice, verifiability }",
+        },
+        {
+          field: "defaultProvider",
+          description:
+            "Address of the first provider in the list (handy for piping into Inference)",
+        },
+        { field: "count", description: "Number of providers returned" },
+      ],
+      configFields: [
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          defaultValue: String(ZERO_G_COMPUTE_DEFAULT_CHAIN_ID),
+          options: [
+            { value: "16602", label: "0G Galileo Testnet (16602)" },
+            { value: "16661", label: "0G Mainnet (16661)" },
+          ],
+        },
+        {
+          key: "modelFilter",
+          label: "Model Filter",
+          type: "template-input",
+          placeholder: "e.g. llama or deepseek (optional substring match)",
+          required: false,
+        },
+      ],
+    },
+    {
+      slug: "fund-provider",
+      label: "Fund Provider",
+      description:
+        "Initialize the org's 0G ledger (one-time, >=3 OG) and transfer funds to a provider's inference sub-account (recommended >=1 OG). Required once per provider before Inference works.",
+      category: "0G Compute",
+      stepFunction: "fundProviderStep",
+      stepImportPath: "fund-provider",
+      outputFields: [
+        {
+          field: "ledgerCreated",
+          description: "True if a new ledger was created on this call",
+        },
+        {
+          field: "ledgerSkippedReason",
+          description: "Reason addLedger was skipped (e.g. already exists)",
+        },
+        {
+          field: "transferredOG",
+          description: "Amount of OG transferred to the provider sub-account",
+        },
+        { field: "provider", description: "Provider address that was funded" },
+      ],
+      configFields: [
+        {
+          key: "network",
+          label: "Network",
+          type: "select",
+          defaultValue: String(ZERO_G_COMPUTE_DEFAULT_CHAIN_ID),
+          options: [
+            { value: "16602", label: "0G Galileo Testnet (16602)" },
+            { value: "16661", label: "0G Mainnet (16661)" },
+          ],
+        },
+        {
+          key: "providerAddress",
+          label: "Provider Address",
+          type: "template-input",
+          placeholder: "0x... or {{ListProviders.defaultProvider}}",
+          required: true,
+        },
+        {
+          key: "initialLedgerOG",
+          label: "Initial Ledger Balance (OG)",
+          type: "number",
+          placeholder: "3",
+          defaultValue: "3",
+          min: 3,
+          required: false,
+          helpTip:
+            "Only used if no ledger exists yet for this org. Minimum 3 OG.",
+        },
+        {
+          key: "transferAmountOG",
+          label: "Transfer Amount (OG)",
+          type: "number",
+          placeholder: "1",
+          defaultValue: "1",
+          min: 0,
+          step: 0.1,
+          required: false,
+          helpTip:
+            "Amount transferred from your ledger to the provider's inference sub-account. Recommended >=1 OG.",
+        },
+      ],
+    },
+    {
       slug: "inference",
       label: "Inference",
       description:
