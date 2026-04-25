@@ -1,14 +1,14 @@
 import "server-only";
 
+import { toUtf8Bytes } from "ethers";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
-import {
-  resolveZeroGStorageIndexerUrl,
-  type ZeroGStorageCredentials,
-} from "../credentials";
+import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
+import { buildWriteContext, writeKvEntry } from "../client-core";
+import type { ZeroGStorageCredentials } from "../credentials";
 
 const LOG_CONTEXT = {
   plugin_name: "0g-storage",
@@ -28,40 +28,13 @@ export type KvPutInput = StepInput &
   };
 
 type KvPutResult =
-  | { success: true; txHash: string | null }
+  | { success: true; txHash: string; rootHash: string }
   | { success: false; error: string };
 
-type KvPutResponse = {
-  data?: {
-    txHash?: string;
-  };
-  error?: string;
-};
-
 async function stepHandler(
-  input: KvPutCoreInput,
+  input: KvPutInput,
   credentials: ZeroGStorageCredentials
 ): Promise<KvPutResult> {
-  const indexerUrl = resolveZeroGStorageIndexerUrl(credentials);
-
-  const privateKey =
-    credentials.ZERO_G_STORAGE_PRIVATE_KEY ??
-    process.env.ZERO_G_STORAGE_PRIVATE_KEY;
-
-  if (!privateKey) {
-    logUserError(
-      ErrorCategory.CONFIGURATION,
-      "[0G Storage] kv-put missing private key",
-      undefined,
-      LOG_CONTEXT
-    );
-    return {
-      success: false,
-      error:
-        "ZERO_G_STORAGE_PRIVATE_KEY is not configured. Add it in Project Integrations.",
-    };
-  }
-
   if (!(input.streamId && input.key)) {
     logUserError(
       ErrorCategory.VALIDATION,
@@ -72,46 +45,60 @@ async function stepHandler(
     return { success: false, error: "streamId and key are required" };
   }
 
+  if (!(input._context?.executionId || input._context?.organizationId)) {
+    return {
+      success: false,
+      error: "Execution ID or organization ID is required",
+    };
+  }
+
+  const orgCtx = await resolveOrganizationContext(
+    input._context,
+    "[0G Storage]",
+    "kv-put"
+  );
+  if (!orgCtx.success) {
+    return orgCtx;
+  }
+
+  const setup = await buildWriteContext(
+    credentials,
+    orgCtx.organizationId,
+    orgCtx.userId
+  );
+  if (!setup.ok) {
+    logUserError(
+      ErrorCategory.CONFIGURATION,
+      "[0G Storage] kv-put setup failed",
+      setup.error,
+      LOG_CONTEXT
+    );
+    return { success: false, error: setup.error };
+  }
+
   try {
-    const response = await fetch(`${indexerUrl}/kv/set`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${privateKey}`,
-      },
-      body: JSON.stringify({
-        streamId: input.streamId,
-        key: input.key,
-        value: input.value,
-      }),
-    });
+    const result = await writeKvEntry(
+      setup.context,
+      input.streamId,
+      toUtf8Bytes(input.key),
+      toUtf8Bytes(input.value ?? "")
+    );
 
-    if (!response.ok) {
+    if (!result.ok) {
       logUserError(
         ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] kv-put HTTP error",
-        { status: response.status },
+        "[0G Storage] kv-put exec failed",
+        result.error,
         LOG_CONTEXT
       );
-      return {
-        success: false,
-        error: `0G Storage KV put failed: HTTP ${response.status}`,
-      };
+      return { success: false, error: result.error };
     }
 
-    const body = (await response.json()) as KvPutResponse;
-    if (body.error) {
-      logUserError(
-        ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] kv-put indexer error",
-        body.error,
-        LOG_CONTEXT
-      );
-      return { success: false, error: body.error };
-    }
-
-    return { success: true, txHash: body.data?.txHash ?? null };
+    return {
+      success: true,
+      txHash: result.txHash,
+      rootHash: result.rootHash,
+    };
   } catch (error) {
     logUserError(
       ErrorCategory.NETWORK_RPC,
@@ -141,13 +128,7 @@ export async function kvPutStep(input: KvPutInput): Promise<KvPutResult> {
       actionName: "kv-put",
       executionId: input._context?.executionId,
     },
-    () =>
-      withStepLogging(input, () =>
-        stepHandler(
-          { streamId: input.streamId, key: input.key, value: input.value },
-          credentials
-        )
-      )
+    () => withStepLogging(input, () => stepHandler(input, credentials))
   );
 }
 kvPutStep.maxRetries = 0;

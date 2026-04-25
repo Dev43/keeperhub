@@ -1,47 +1,70 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
+import {
+  ZERO_G_DEFAULT_CHAIN_ID,
+  ZERO_G_DEFAULT_FLOW_ADDRESS,
+  ZERO_G_DEFAULT_INDEXER_URL,
+  ZERO_G_DEFAULT_KV_NODE_URL,
+} from "./credentials";
 import { ZeroGStorageIcon } from "./icon";
 
 const zeroGStoragePlugin: IntegrationPlugin = {
   type: "0g-storage",
   label: "0G Storage",
-  description: "Read and write KV entries and append-only logs on 0G Storage",
+  description:
+    "Read and write KV entries and append-only logs on 0G Storage using your organization's KeeperHub wallet to sign on-chain Flow transactions",
 
   icon: ZeroGStorageIcon,
 
-  requiresCredentials: true,
+  // The plugin signs through the organization's KeeperHub wallet (Para or
+  // Turnkey). Defaults work for 0G Galileo testnet, so credentials are
+  // optional and only used to override endpoints or chain id.
+  requiresCredentials: false,
 
   formFields: [
     {
-      id: "network",
-      label: "Network",
+      id: "chainId",
+      label: "0G Chain ID",
       type: "text",
-      placeholder: "testnet",
-      defaultValue: "testnet",
-      configKey: "network",
-      envVar: "ZERO_G_STORAGE_NETWORK",
+      placeholder: String(ZERO_G_DEFAULT_CHAIN_ID),
+      defaultValue: String(ZERO_G_DEFAULT_CHAIN_ID),
+      configKey: "chainId",
+      envVar: "ZERO_G_CHAIN_ID",
       helpText:
-        "0G network: 'mainnet' or 'testnet'. Selects the default indexer URL when one is not provided below.",
+        "0G chain to sign Flow transactions on. Defaults to 16601 (Galileo testnet); 16661 selects mainnet.",
     },
     {
       id: "indexerUrl",
-      label: "Indexer URL (optional)",
+      label: "0G Storage Indexer URL",
       type: "text",
-      placeholder: "https://indexer-storage-testnet-turbo.0g.ai",
+      placeholder: ZERO_G_DEFAULT_INDEXER_URL,
+      defaultValue: ZERO_G_DEFAULT_INDEXER_URL,
       configKey: "indexerUrl",
-      envVar: "ZERO_G_STORAGE_INDEXER_URL",
+      envVar: "ZERO_G_INDEXER_URL",
       helpText:
-        "Override the default indexer endpoint for the selected network",
+        "Indexer endpoint used to discover storage nodes for blob and KV uploads",
     },
     {
-      id: "privateKey",
-      label: "Signer Private Key",
-      type: "password",
-      placeholder: "0x...",
-      configKey: "privateKey",
-      envVar: "ZERO_G_STORAGE_PRIVATE_KEY",
+      id: "kvNodeUrl",
+      label: "0G KV Node URL",
+      type: "text",
+      placeholder: ZERO_G_DEFAULT_KV_NODE_URL,
+      defaultValue: ZERO_G_DEFAULT_KV_NODE_URL,
+      configKey: "kvNodeUrl",
+      envVar: "ZERO_G_KV_NODE_URL",
       helpText:
-        "Private key used to authorize KV writes and Log appends. Reads do not require a key.",
+        "KV node JSON-RPC endpoint used by KV reads. Defaults to the 0G Galileo testnet KV node",
+    },
+    {
+      id: "flowAddress",
+      label: "Flow Contract Address",
+      type: "text",
+      placeholder: ZERO_G_DEFAULT_FLOW_ADDRESS,
+      defaultValue: ZERO_G_DEFAULT_FLOW_ADDRESS,
+      configKey: "flowAddress",
+      envVar: "ZERO_G_FLOW_ADDRESS",
+      helpText:
+        "0G Flow contract used to commit data roots. Defaults to the Galileo testnet deployment",
     },
   ],
 
@@ -61,7 +84,10 @@ const zeroGStoragePlugin: IntegrationPlugin = {
       stepFunction: "kvGetStep",
       stepImportPath: "kv-get",
       outputFields: [
-        { field: "value", description: "Stored value, or null if not present" },
+        {
+          field: "value",
+          description: "Stored value (UTF-8 decoded), or null if not present",
+        },
         { field: "version", description: "Entry version, or null" },
       ],
       configFields: [
@@ -70,7 +96,8 @@ const zeroGStoragePlugin: IntegrationPlugin = {
           label: "Stream ID",
           type: "template-input",
           placeholder: "0x...",
-          example: "0xabc123...",
+          example:
+            "0x000000000000000000000000000000000000000000000000000000000000f2bd",
           required: true,
         },
         {
@@ -86,12 +113,14 @@ const zeroGStoragePlugin: IntegrationPlugin = {
     {
       slug: "kv-put",
       label: "KV Put",
-      description: "Write a value to a 0G Storage KV stream",
+      description:
+        "Write a value to a 0G Storage KV stream by submitting an on-chain Flow transaction signed by your KeeperHub wallet",
       category: "0G",
       stepFunction: "kvPutStep",
       stepImportPath: "kv-put",
       outputFields: [
         { field: "txHash", description: "0G chain tx hash for the write" },
+        { field: "rootHash", description: "Data root hash committed on-chain" },
       ],
       configFields: [
         {
@@ -121,12 +150,16 @@ const zeroGStoragePlugin: IntegrationPlugin = {
     {
       slug: "log-append",
       label: "Log Append",
-      description: "Append an entry to a 0G Storage append-only log stream",
+      description:
+        "Append an entry to an append-only log by uploading a signed blob to 0G Storage with your KeeperHub wallet",
       category: "0G",
       stepFunction: "logAppendStep",
       stepImportPath: "log-append",
       outputFields: [
-        { field: "entryId", description: "Append-only log entry ID" },
+        {
+          field: "rootHash",
+          description: "Data root hash of the appended entry",
+        },
         { field: "txHash", description: "0G chain tx hash for the append" },
       ],
       configFields: [

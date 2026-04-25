@@ -1,14 +1,14 @@
 import "server-only";
 
+import { toUtf8Bytes } from "ethers";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
-import {
-  resolveZeroGStorageIndexerUrl,
-  type ZeroGStorageCredentials,
-} from "../credentials";
+import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
+import { buildWriteContext, uploadBlob } from "../client-core";
+import type { ZeroGStorageCredentials } from "../credentials";
 
 const LOG_CONTEXT = {
   plugin_name: "0g-storage",
@@ -28,41 +28,23 @@ export type LogAppendInput = StepInput &
   };
 
 type LogAppendResult =
-  | { success: true; entryId: string | null; txHash: string | null }
+  | { success: true; rootHash: string; txHash: string }
   | { success: false; error: string };
 
-type LogAppendResponse = {
-  data?: {
-    entryId?: string;
-    txHash?: string;
+function buildEntryPayload(input: LogAppendCoreInput): Uint8Array {
+  const envelope = {
+    streamId: input.streamId,
+    tag: input.tag ?? null,
+    payload: input.payload,
+    timestamp: Date.now(),
   };
-  error?: string;
-};
+  return toUtf8Bytes(JSON.stringify(envelope));
+}
 
 async function stepHandler(
-  input: LogAppendCoreInput,
+  input: LogAppendInput,
   credentials: ZeroGStorageCredentials
 ): Promise<LogAppendResult> {
-  const indexerUrl = resolveZeroGStorageIndexerUrl(credentials);
-
-  const privateKey =
-    credentials.ZERO_G_STORAGE_PRIVATE_KEY ??
-    process.env.ZERO_G_STORAGE_PRIVATE_KEY;
-
-  if (!privateKey) {
-    logUserError(
-      ErrorCategory.CONFIGURATION,
-      "[0G Storage] log-append missing private key",
-      undefined,
-      LOG_CONTEXT
-    );
-    return {
-      success: false,
-      error:
-        "ZERO_G_STORAGE_PRIVATE_KEY is not configured. Add it in Project Integrations.",
-    };
-  }
-
   if (!(input.streamId && input.payload)) {
     logUserError(
       ErrorCategory.VALIDATION,
@@ -70,52 +52,59 @@ async function stepHandler(
       { streamId: input.streamId, hasPayload: Boolean(input.payload) },
       LOG_CONTEXT
     );
-    return { success: false, error: "streamId and payload are required" };
+    return {
+      success: false,
+      error: "streamId and payload are required",
+    };
+  }
+
+  if (!(input._context?.executionId || input._context?.organizationId)) {
+    return {
+      success: false,
+      error: "Execution ID or organization ID is required",
+    };
+  }
+
+  const orgCtx = await resolveOrganizationContext(
+    input._context,
+    "[0G Storage]",
+    "log-append"
+  );
+  if (!orgCtx.success) {
+    return orgCtx;
+  }
+
+  const setup = await buildWriteContext(
+    credentials,
+    orgCtx.organizationId,
+    orgCtx.userId
+  );
+  if (!setup.ok) {
+    logUserError(
+      ErrorCategory.CONFIGURATION,
+      "[0G Storage] log-append setup failed",
+      setup.error,
+      LOG_CONTEXT
+    );
+    return { success: false, error: setup.error };
   }
 
   try {
-    const response = await fetch(`${indexerUrl}/log/append`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${privateKey}`,
-      },
-      body: JSON.stringify({
-        streamId: input.streamId,
-        payload: input.payload,
-        tag: input.tag,
-      }),
-    });
-
-    if (!response.ok) {
+    const result = await uploadBlob(setup.context, buildEntryPayload(input));
+    if (!result.ok) {
       logUserError(
         ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] log-append HTTP error",
-        { status: response.status },
+        "[0G Storage] log-append upload failed",
+        result.error,
         LOG_CONTEXT
       );
-      return {
-        success: false,
-        error: `0G Storage log append failed: HTTP ${response.status}`,
-      };
-    }
-
-    const body = (await response.json()) as LogAppendResponse;
-    if (body.error) {
-      logUserError(
-        ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] log-append indexer error",
-        body.error,
-        LOG_CONTEXT
-      );
-      return { success: false, error: body.error };
+      return { success: false, error: result.error };
     }
 
     return {
       success: true,
-      entryId: body.data?.entryId ?? null,
-      txHash: body.data?.txHash ?? null,
+      rootHash: result.rootHash,
+      txHash: result.txHash,
     };
   } catch (error) {
     logUserError(
@@ -148,17 +137,7 @@ export async function logAppendStep(
       actionName: "log-append",
       executionId: input._context?.executionId,
     },
-    () =>
-      withStepLogging(input, () =>
-        stepHandler(
-          {
-            streamId: input.streamId,
-            payload: input.payload,
-            tag: input.tag,
-          },
-          credentials
-        )
-      )
+    () => withStepLogging(input, () => stepHandler(input, credentials))
   );
 }
 logAppendStep.maxRetries = 0;

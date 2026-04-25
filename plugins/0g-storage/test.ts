@@ -1,5 +1,5 @@
 import {
-  resolveZeroGStorageIndexerUrl,
+  resolveZeroGIndexerUrl,
   type ZeroGStorageCredentials,
 } from "./credentials";
 
@@ -8,32 +8,25 @@ type TestResult = { success: true } | { success: false; error: string };
 export async function testZeroGStorage(
   credentials: Record<string, string>
 ): Promise<TestResult> {
-  const indexerUrl = resolveZeroGStorageIndexerUrl(
+  const indexerUrl = resolveZeroGIndexerUrl(
     credentials as ZeroGStorageCredentials
   );
 
   try {
-    const response = await fetch(`${indexerUrl}/status`, {
+    const response = await fetch(`${indexerUrl}/`, {
       method: "GET",
       headers: { Accept: "application/json" },
     });
 
-    if (response.ok || response.status === 404) {
-      return { success: true };
-    }
-
-    if (response.status === 401 || response.status === 403) {
+    // Indexer responds even for unknown paths; any 2xx/3xx/4xx means it's
+    // reachable. Only treat 5xx and network errors as failures.
+    if (response.status >= 500) {
       return {
         success: false,
-        error:
-          "0G Storage indexer rejected the request. Verify the indexer URL and credentials.",
+        error: `0G Storage indexer reachable but returned HTTP ${response.status}`,
       };
     }
-
-    return {
-      success: false,
-      error: `0G Storage indexer reachable but returned HTTP ${response.status}`,
-    };
+    return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {

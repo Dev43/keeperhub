@@ -1,6 +1,36 @@
 {
   "version": "1.0.0",
   "steps": {
+    "lib/steps/condition.ts": {
+      "conditionStep": {
+        "stepId": "step//./lib/steps/condition//conditionStep"
+      }
+    },
+    "plugins/0g-storage/steps/kv-get.ts": {
+      "kvGetStep": {
+        "stepId": "step//./plugins/0g-storage/steps/kv-get//kvGetStep"
+      }
+    },
+    "lib/steps/database-query.ts": {
+      "databaseQueryStep": {
+        "stepId": "step//./lib/steps/database-query//databaseQueryStep"
+      }
+    },
+    "plugins/webhook/steps/send-webhook.ts": {
+      "sendWebhookStep": {
+        "stepId": "step//./plugins/webhook/steps/send-webhook//sendWebhookStep"
+      }
+    },
+    "lib/steps/enrich-explorer-links.ts": {
+      "enrichExplorerLinks": {
+        "stepId": "step//./lib/steps/enrich-explorer-links//enrichExplorerLinks"
+      }
+    },
+    "lib/steps/for-each.ts": {
+      "forEachStep": {
+        "stepId": "step//./lib/steps/for-each//forEachStep"
+      }
+    },
     "node_modules/.pnpm/workflow@4.2.0-beta.76_@nestjs+common@11.1.12_reflect-metadata@0.2.2_rxjs@7.8.2__@nestj_bbd8e16e83c63ad42aa3c647cfa7393b/node_modules/workflow/dist/internal/builtins.js": {
       "__builtin_response_array_buffer": {
         "stepId": "__builtin_response_array_buffer"
@@ -12,19 +42,9 @@
         "stepId": "__builtin_response_text"
       }
     },
-    "lib/steps/collect.ts": {
-      "collectStep": {
-        "stepId": "step//./lib/steps/collect//collectStep"
-      }
-    },
-    "lib/steps/enrich-explorer-links.ts": {
-      "enrichExplorerLinks": {
-        "stepId": "step//./lib/steps/enrich-explorer-links//enrichExplorerLinks"
-      }
-    },
-    "lib/steps/condition.ts": {
-      "conditionStep": {
-        "stepId": "step//./lib/steps/condition//conditionStep"
+    "plugins/0g-storage/steps/log-append.ts": {
+      "logAppendStep": {
+        "stepId": "step//./plugins/0g-storage/steps/log-append//logAppendStep"
       }
     },
     "plugins/0g-storage/steps/kv-put.ts": {
@@ -32,24 +52,19 @@
         "stepId": "step//./plugins/0g-storage/steps/kv-put//kvPutStep"
       }
     },
-    "plugins/protocol/steps/protocol-read.ts": {
-      "protocolReadStep": {
-        "stepId": "step//./plugins/protocol/steps/protocol-read//protocolReadStep"
+    "lib/steps/http-request.ts": {
+      "httpRequestStep": {
+        "stepId": "step//./lib/steps/http-request//httpRequestStep"
       }
     },
-    "lib/steps/database-query.ts": {
-      "databaseQueryStep": {
-        "stepId": "step//./lib/steps/database-query//databaseQueryStep"
+    "lib/steps/trigger.ts": {
+      "triggerStep": {
+        "stepId": "step//./lib/steps/trigger//triggerStep"
       }
     },
     "plugins/discord/steps/send-message.ts": {
       "sendDiscordMessageStep": {
         "stepId": "step//./plugins/discord/steps/send-message//sendDiscordMessageStep"
-      }
-    },
-    "plugins/0g-storage/steps/log-append.ts": {
-      "logAppendStep": {
-        "stepId": "step//./plugins/0g-storage/steps/log-append//logAppendStep"
       }
     },
     "plugins/code/steps/run-code.ts": {
@@ -62,49 +77,9 @@
         "stepId": "step//./plugins/0g-compute/steps/sealed-inference//sealedInferenceStep"
       }
     },
-    "lib/steps/trigger.ts": {
-      "triggerStep": {
-        "stepId": "step//./lib/steps/trigger//triggerStep"
-      }
-    },
-    "lib/steps/for-each.ts": {
-      "forEachStep": {
-        "stepId": "step//./lib/steps/for-each//forEachStep"
-      }
-    },
-    "lib/steps/http-request.ts": {
-      "httpRequestStep": {
-        "stepId": "step//./lib/steps/http-request//httpRequestStep"
-      }
-    },
-    "plugins/0g-storage/steps/kv-get.ts": {
-      "kvGetStep": {
-        "stepId": "step//./plugins/0g-storage/steps/kv-get//kvGetStep"
-      }
-    },
-    "plugins/sendgrid/steps/send-email.ts": {
-      "sendEmailStep": {
-        "stepId": "step//./plugins/sendgrid/steps/send-email//sendEmailStep"
-      }
-    },
-    "plugins/math/steps/aggregate.ts": {
-      "aggregateStep": {
-        "stepId": "step//./plugins/math/steps/aggregate//aggregateStep"
-      }
-    },
-    "plugins/safe/steps/get-pending-transactions.ts": {
-      "getPendingTransactionsStep": {
-        "stepId": "step//./plugins/safe/steps/get-pending-transactions//getPendingTransactionsStep"
-      }
-    },
-    "plugins/web3/steps/approve-token.ts": {
-      "approveTokenStep": {
-        "stepId": "step//./plugins/web3/steps/approve-token//approveTokenStep"
-      }
-    },
-    "plugins/protocol/steps/protocol-write.ts": {
-      "protocolWriteStep": {
-        "stepId": "step//./plugins/protocol/steps/protocol-write//protocolWriteStep"
+    "plugins/web3/steps/decode-calldata.ts": {
+      "decodeCalldataStep": {
+        "stepId": "step//./plugins/web3/steps/decode-calldata//decodeCalldataStep"
       }
     },
     "plugins/web3/steps/check-balance.ts": {
@@ -112,9 +87,69 @@
         "stepId": "step//./plugins/web3/steps/check-balance//checkBalanceStep"
       }
     },
-    "plugins/slack/steps/send-slack-message.ts": {
-      "sendSlackMessageStep": {
-        "stepId": "step//./plugins/slack/steps/send-slack-message//sendSlackMessageStep"
+    "plugins/math/steps/aggregate.ts": {
+      "aggregateStep": {
+        "stepId": "step//./plugins/math/steps/aggregate//aggregateStep"
+      }
+    },
+    "plugins/protocol/steps/protocol-read.ts": {
+      "protocolReadStep": {
+        "stepId": "step//./plugins/protocol/steps/protocol-read//protocolReadStep"
+      }
+    },
+    "plugins/web3/steps/get-transaction.ts": {
+      "getTransactionStep": {
+        "stepId": "step//./plugins/web3/steps/get-transaction//getTransactionStep"
+      }
+    },
+    "plugins/web3/steps/check-token-balance.ts": {
+      "checkTokenBalanceStep": {
+        "stepId": "step//./plugins/web3/steps/check-token-balance//checkTokenBalanceStep"
+      }
+    },
+    "plugins/web3/steps/query-transactions.ts": {
+      "queryTransactionsStep": {
+        "stepId": "step//./plugins/web3/steps/query-transactions//queryTransactionsStep"
+      }
+    },
+    "plugins/protocol/steps/protocol-write.ts": {
+      "protocolWriteStep": {
+        "stepId": "step//./plugins/protocol/steps/protocol-write//protocolWriteStep"
+      }
+    },
+    "plugins/web3/steps/read-contract.ts": {
+      "readContractStep": {
+        "stepId": "step//./plugins/web3/steps/read-contract//readContractStep"
+      }
+    },
+    "plugins/web3/steps/transfer-funds.ts": {
+      "transferFundsStep": {
+        "stepId": "step//./plugins/web3/steps/transfer-funds//transferFundsStep"
+      }
+    },
+    "plugins/safe/steps/get-pending-transactions.ts": {
+      "getPendingTransactionsStep": {
+        "stepId": "step//./plugins/safe/steps/get-pending-transactions//getPendingTransactionsStep"
+      }
+    },
+    "plugins/web3/steps/query-events.ts": {
+      "queryEventsStep": {
+        "stepId": "step//./plugins/web3/steps/query-events//queryEventsStep"
+      }
+    },
+    "plugins/web3/steps/transfer-token.ts": {
+      "transferTokenStep": {
+        "stepId": "step//./plugins/web3/steps/transfer-token//transferTokenStep"
+      }
+    },
+    "plugins/web3/steps/approve-token.ts": {
+      "approveTokenStep": {
+        "stepId": "step//./plugins/web3/steps/approve-token//approveTokenStep"
+      }
+    },
+    "lib/steps/collect.ts": {
+      "collectStep": {
+        "stepId": "step//./lib/steps/collect//collectStep"
       }
     },
     "plugins/web3/steps/assess-risk.ts": {
@@ -127,9 +162,19 @@
         "stepId": "step//./plugins/web3/steps/check-allowance//checkAllowanceStep"
       }
     },
-    "plugins/web3/steps/query-transactions.ts": {
-      "queryTransactionsStep": {
-        "stepId": "step//./plugins/web3/steps/query-transactions//queryTransactionsStep"
+    "plugins/web3/steps/write-contract.ts": {
+      "writeContractStep": {
+        "stepId": "step//./plugins/web3/steps/write-contract//writeContractStep"
+      }
+    },
+    "plugins/sendgrid/steps/send-email.ts": {
+      "sendEmailStep": {
+        "stepId": "step//./plugins/sendgrid/steps/send-email//sendEmailStep"
+      }
+    },
+    "plugins/slack/steps/send-slack-message.ts": {
+      "sendSlackMessageStep": {
+        "stepId": "step//./plugins/slack/steps/send-slack-message//sendSlackMessageStep"
       }
     },
     "plugins/telegram/steps/send-message.ts": {
@@ -137,54 +182,9 @@
         "stepId": "step//./plugins/telegram/steps/send-message//sendTelegramMessageStep"
       }
     },
-    "plugins/web3/steps/check-token-balance.ts": {
-      "checkTokenBalanceStep": {
-        "stepId": "step//./plugins/web3/steps/check-token-balance//checkTokenBalanceStep"
-      }
-    },
-    "plugins/web3/steps/decode-calldata.ts": {
-      "decodeCalldataStep": {
-        "stepId": "step//./plugins/web3/steps/decode-calldata//decodeCalldataStep"
-      }
-    },
-    "plugins/web3/steps/transfer-funds.ts": {
-      "transferFundsStep": {
-        "stepId": "step//./plugins/web3/steps/transfer-funds//transferFundsStep"
-      }
-    },
     "plugins/web3/steps/batch-read-contract.ts": {
       "batchReadContractStep": {
         "stepId": "step//./plugins/web3/steps/batch-read-contract//batchReadContractStep"
-      }
-    },
-    "plugins/web3/steps/transfer-token.ts": {
-      "transferTokenStep": {
-        "stepId": "step//./plugins/web3/steps/transfer-token//transferTokenStep"
-      }
-    },
-    "plugins/web3/steps/read-contract.ts": {
-      "readContractStep": {
-        "stepId": "step//./plugins/web3/steps/read-contract//readContractStep"
-      }
-    },
-    "plugins/web3/steps/write-contract.ts": {
-      "writeContractStep": {
-        "stepId": "step//./plugins/web3/steps/write-contract//writeContractStep"
-      }
-    },
-    "plugins/web3/steps/get-transaction.ts": {
-      "getTransactionStep": {
-        "stepId": "step//./plugins/web3/steps/get-transaction//getTransactionStep"
-      }
-    },
-    "plugins/web3/steps/query-events.ts": {
-      "queryEventsStep": {
-        "stepId": "step//./plugins/web3/steps/query-events//queryEventsStep"
-      }
-    },
-    "plugins/webhook/steps/send-webhook.ts": {
-      "sendWebhookStep": {
-        "stepId": "step//./plugins/webhook/steps/send-webhook//sendWebhookStep"
       }
     }
   },

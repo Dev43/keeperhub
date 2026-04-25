@@ -24,147 +24,221 @@ vi.mock("@/lib/credential-fetcher", () => ({
   fetchCredentials: vi.fn(),
 }));
 
+vi.mock("@/lib/web3/resolve-org-context", () => ({
+  resolveOrganizationContext: vi.fn(),
+}));
+
+const {
+  acknowledgeProviderSigner,
+  getServiceMetadata,
+  getRequestHeaders,
+  processResponse,
+} = vi.hoisted(() => ({
+  acknowledgeProviderSigner: vi.fn().mockResolvedValue(undefined),
+  getServiceMetadata: vi.fn().mockResolvedValue({
+    endpoint: "https://provider.example/v1/proxy",
+    model: "qwen",
+  }),
+  getRequestHeaders: vi.fn().mockResolvedValue({ "x-zg-auth": "sig" }),
+  processResponse: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock("../../plugins/0g-compute/client-core", () => ({
+  buildBrokerContext: vi.fn(),
+}));
+
 import { fetchCredentials } from "@/lib/credential-fetcher";
+import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
+import { buildBrokerContext } from "../../plugins/0g-compute/client-core";
 import {
-  resolveZeroGComputeGatewayUrl,
-  resolveZeroGComputeNetwork,
-  ZERO_G_COMPUTE_GATEWAY_URLS,
+  resolveZeroGComputeChainId,
+  ZERO_G_COMPUTE_DEFAULT_CHAIN_ID,
 } from "../../plugins/0g-compute/credentials";
-import { sealedInferenceStep } from "../../plugins/0g-compute/steps/sealed-inference";
+import { sealedInferenceStep } from "../../plugins/0g-compute/steps/inference";
+
+type BrokerSetup = Awaited<ReturnType<typeof buildBrokerContext>>;
+type BrokerContext = Extract<BrokerSetup, { ok: true }>["context"];
 
 const fetchCredentialsMock = vi.mocked(fetchCredentials);
+const resolveOrgContextMock = vi.mocked(resolveOrganizationContext);
+const buildBrokerContextMock = vi.mocked(buildBrokerContext);
 const originalFetch = global.fetch;
+
+const STUB_BROKER = {
+  inference: {
+    acknowledgeProviderSigner,
+    getServiceMetadata,
+    getRequestHeaders,
+    processResponse,
+  },
+};
+
+const STUB_CONTEXT = {
+  broker: STUB_BROKER,
+  signer: {},
+  rpcUrl: "https://evmrpc-testnet.0g.ai",
+  chainId: 16_601,
+};
+
+const CTX = {
+  executionId: "exec_1",
+  organizationId: "org_1",
+  nodeId: "node_1",
+  nodeName: "infer",
+  nodeType: "0g-compute",
+};
 
 beforeEach(() => {
   fetchCredentialsMock.mockReset();
-  delete process.env.ZERO_G_COMPUTE_GATEWAY_URL;
-  delete process.env.ZERO_G_COMPUTE_NETWORK;
-  delete process.env.ZERO_G_COMPUTE_API_KEY;
+  resolveOrgContextMock.mockReset();
+  buildBrokerContextMock.mockReset();
+  acknowledgeProviderSigner.mockClear();
+  getServiceMetadata.mockClear();
+  getRequestHeaders.mockClear();
+  processResponse.mockClear();
+  resolveOrgContextMock.mockResolvedValue({
+    success: true,
+    organizationId: "org_1",
+    userId: "user_1",
+  });
+  // biome-ignore lint/performance/noDelete: assigning undefined coerces to "undefined" string in process.env
+  delete process.env.ZERO_G_COMPUTE_CHAIN_ID;
 });
 
 afterEach(() => {
   global.fetch = originalFetch;
 });
 
-describe("resolveZeroGComputeNetwork", () => {
-  it("defaults to testnet", () => {
-    expect(resolveZeroGComputeNetwork(undefined)).toBe("testnet");
-    expect(resolveZeroGComputeNetwork("garbage")).toBe("testnet");
+describe("resolveZeroGComputeChainId", () => {
+  it("defaults to testnet chain id", () => {
+    expect(resolveZeroGComputeChainId({})).toBe(
+      ZERO_G_COMPUTE_DEFAULT_CHAIN_ID
+    );
   });
 
-  it("recognizes mainnet", () => {
-    expect(resolveZeroGComputeNetwork("mainnet")).toBe("mainnet");
-  });
-});
-
-describe("resolveZeroGComputeGatewayUrl", () => {
-  it("prefers explicit gateway URL", () => {
+  it("parses chain id from credentials", () => {
     expect(
-      resolveZeroGComputeGatewayUrl({
-        ZERO_G_COMPUTE_GATEWAY_URL: "https://custom.example",
-        ZERO_G_COMPUTE_NETWORK: "testnet",
-      })
-    ).toBe("https://custom.example");
+      resolveZeroGComputeChainId({ ZERO_G_COMPUTE_CHAIN_ID: "16661" })
+    ).toBe(16_661);
   });
 
-  it("uses mainnet gateway when network=mainnet", () => {
-    expect(
-      resolveZeroGComputeGatewayUrl({ ZERO_G_COMPUTE_NETWORK: "mainnet" })
-    ).toBe(ZERO_G_COMPUTE_GATEWAY_URLS.mainnet);
-  });
-
-  it("defaults to testnet gateway", () => {
-    expect(resolveZeroGComputeGatewayUrl({})).toBe(
-      ZERO_G_COMPUTE_GATEWAY_URLS.testnet
+  it("falls back to default when value is not a number", () => {
+    expect(resolveZeroGComputeChainId({ ZERO_G_COMPUTE_CHAIN_ID: "abc" })).toBe(
+      ZERO_G_COMPUTE_DEFAULT_CHAIN_ID
     );
   });
 });
 
 describe("sealedInferenceStep", () => {
-  it("requires an API key", async () => {
+  it("requires providerAddress and prompt", async () => {
     fetchCredentialsMock.mockResolvedValue({});
 
     const result = await sealedInferenceStep({
-      model: "qwen2.5-0.5b",
+      providerAddress: "",
+      prompt: "",
+      integrationId: "int_1",
+      _context: CTX,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: "providerAddress and prompt are required",
+    });
+    expect(buildBrokerContextMock).not.toHaveBeenCalled();
+  });
+
+  it("requires execution or organization id in the workflow context", async () => {
+    fetchCredentialsMock.mockResolvedValue({});
+
+    const result = await sealedInferenceStep({
+      providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",
     });
 
     expect(result).toEqual({
       success: false,
-      error:
-        "ZERO_G_COMPUTE_API_KEY is not configured. Add it in Project Integrations.",
+      error: "Execution ID or organization ID is required",
     });
   });
 
-  it("requires model and prompt", async () => {
-    fetchCredentialsMock.mockResolvedValue({
-      ZERO_G_COMPUTE_API_KEY: "k",
+  it("propagates configuration errors when the broker cannot be initialized", async () => {
+    fetchCredentialsMock.mockResolvedValue({});
+    buildBrokerContextMock.mockResolvedValue({
+      ok: false,
+      error: "Failed to initialize 0G compute broker: no wallet for org",
     });
 
     const result = await sealedInferenceStep({
-      model: "",
-      prompt: "",
+      providerAddress: "0xprovider",
+      prompt: "hi",
       integrationId: "int_1",
+      _context: CTX,
     });
 
     expect(result).toEqual({
       success: false,
-      error: "model and prompt are required",
+      error: "Failed to initialize 0G compute broker: no wallet for org",
     });
   });
 
   it("returns inference result on success", async () => {
-    fetchCredentialsMock.mockResolvedValue({
-      ZERO_G_COMPUTE_API_KEY: "k",
+    fetchCredentialsMock.mockResolvedValue({});
+    buildBrokerContextMock.mockResolvedValue({
+      ok: true,
+      context: STUB_CONTEXT as unknown as BrokerContext,
     });
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
       json: async () => ({
-        data: {
-          output: "hello",
-          attestation: "att",
-          modelHash: "mh",
-        },
+        id: "chat_1",
+        choices: [{ message: { content: "hello" } }],
       }),
     } as Response);
 
     const result = await sealedInferenceStep({
-      model: "qwen2.5-0.5b",
+      providerAddress: "0xprovider",
       prompt: "hi",
       integrationId: "int_1",
+      _context: CTX,
     });
 
     expect(result).toEqual({
       success: true,
       output: "hello",
-      attestation: "att",
-      modelHash: "mh",
+      model: "qwen",
+      provider: "0xprovider",
+      chatId: "chat_1",
+      verified: true,
     });
+    expect(acknowledgeProviderSigner).toHaveBeenCalledWith("0xprovider");
+    expect(getRequestHeaders).toHaveBeenCalled();
+    expect(buildBrokerContextMock).toHaveBeenCalledWith({}, "org_1", "user_1");
   });
 
-  it("uses mainnet gateway when configured", async () => {
-    fetchCredentialsMock.mockResolvedValue({
-      ZERO_G_COMPUTE_API_KEY: "k",
-      ZERO_G_COMPUTE_NETWORK: "mainnet",
-    });
-    const fetchSpy = vi.fn().mockResolvedValue({
+  it("surfaces HTTP errors from the provider", async () => {
+    fetchCredentialsMock.mockResolvedValue({});
+    buildBrokerContextMock.mockResolvedValue({
       ok: true,
-      status: 200,
-      json: async () => ({ data: { output: "" } }),
+      context: STUB_CONTEXT as unknown as BrokerContext,
+    });
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 502,
+      text: async () => "bad gateway",
     } as Response);
-    global.fetch = fetchSpy;
 
-    await sealedInferenceStep({
-      model: "m",
-      prompt: "p",
+    const result = await sealedInferenceStep({
+      providerAddress: "0xprovider",
+      prompt: "hi",
       integrationId: "int_1",
+      _context: CTX,
     });
 
-    const calledUrl = fetchSpy.mock.calls[0]?.[0] as string;
-    expect(calledUrl.startsWith(ZERO_G_COMPUTE_GATEWAY_URLS.mainnet)).toBe(
-      true
-    );
+    expect(result).toEqual({
+      success: false,
+      error: "0G Compute inference failed: HTTP 502 -- bad gateway",
+    });
   });
 });

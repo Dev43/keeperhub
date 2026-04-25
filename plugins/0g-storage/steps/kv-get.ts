@@ -1,14 +1,13 @@
 import "server-only";
 
+import { toUtf8Bytes, toUtf8String } from "ethers";
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { withPluginMetrics } from "@/lib/metrics/instrumentation/plugin";
 import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
 import { getErrorMessage } from "@/lib/utils";
-import {
-  resolveZeroGStorageIndexerUrl,
-  type ZeroGStorageCredentials,
-} from "../credentials";
+import { buildReadContext } from "../client-core";
+import type { ZeroGStorageCredentials } from "../credentials";
 
 const LOG_CONTEXT = {
   plugin_name: "0g-storage",
@@ -30,20 +29,18 @@ type KvGetResult =
   | { success: true; value: string | null; version: number | null }
   | { success: false; error: string };
 
-type KvGetResponse = {
-  data?: {
-    value?: string;
-    version?: number;
-  };
-  error?: string;
-};
+function decodeBase64(data: string): string {
+  try {
+    return toUtf8String(Buffer.from(data, "base64"));
+  } catch {
+    return data;
+  }
+}
 
 async function stepHandler(
   input: KvGetCoreInput,
   credentials: ZeroGStorageCredentials
 ): Promise<KvGetResult> {
-  const indexerUrl = resolveZeroGStorageIndexerUrl(credentials);
-
   if (!(input.streamId && input.key)) {
     logUserError(
       ErrorCategory.VALIDATION,
@@ -55,46 +52,21 @@ async function stepHandler(
   }
 
   try {
-    const url = `${indexerUrl}/kv/value?streamId=${encodeURIComponent(
-      input.streamId
-    )}&key=${encodeURIComponent(input.key)}`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
+    const { kv } = buildReadContext(credentials);
+    const result = await kv.getValue(input.streamId, toUtf8Bytes(input.key));
 
-    if (!response.ok) {
-      logUserError(
-        ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] kv-get HTTP error",
-        { status: response.status },
-        LOG_CONTEXT
-      );
-      return {
-        success: false,
-        error: `0G Storage KV get failed: HTTP ${response.status}`,
-      };
-    }
-
-    const body = (await response.json()) as KvGetResponse;
-    if (body.error) {
-      logUserError(
-        ErrorCategory.EXTERNAL_SERVICE,
-        "[0G Storage] kv-get indexer error",
-        body.error,
-        LOG_CONTEXT
-      );
-      return { success: false, error: body.error };
+    if (!result) {
+      return { success: true, value: null, version: null };
     }
 
     return {
       success: true,
-      value: body.data?.value ?? null,
-      version: body.data?.version ?? null,
+      value: decodeBase64(result.data),
+      version: result.version,
     };
   } catch (error) {
     logUserError(
-      ErrorCategory.NETWORK_RPC,
+      ErrorCategory.EXTERNAL_SERVICE,
       "[0G Storage] kv-get failed",
       error,
       LOG_CONTEXT

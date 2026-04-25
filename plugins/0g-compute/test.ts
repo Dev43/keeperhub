@@ -1,5 +1,6 @@
+import { getRpcProvider } from "@/lib/rpc/provider-factory";
 import {
-  resolveZeroGComputeGatewayUrl,
+  resolveZeroGComputeChainId,
   type ZeroGComputeCredentials,
 } from "./credentials";
 
@@ -8,51 +9,48 @@ type TestResult = { success: true } | { success: false; error: string };
 export async function testZeroGCompute(
   credentials: Record<string, string>
 ): Promise<TestResult> {
-  const gatewayUrl = resolveZeroGComputeGatewayUrl(
+  const chainId = resolveZeroGComputeChainId(
     credentials as ZeroGComputeCredentials
   );
-  const apiKey = credentials.ZERO_G_COMPUTE_API_KEY;
-
-  if (!apiKey) {
-    return {
-      success: false,
-      error: "ZERO_G_COMPUTE_API_KEY is not configured",
-    };
-  }
 
   try {
-    const response = await fetch(`${gatewayUrl}/v1/models`, {
-      method: "GET",
+    const rpcManager = await getRpcProvider({ chainId });
+    const rpcUrl = await rpcManager.resolveActiveRpcUrl();
+
+    const response = await fetch(rpcUrl, {
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Accept: "application/json",
-        Authorization: `Bearer ${apiKey}`,
       },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "eth_blockNumber",
+        params: [],
+        id: 1,
+      }),
     });
 
-    if (response.ok) {
-      return { success: true };
-    }
-
-    if (response.status === 401 || response.status === 403) {
+    if (!response.ok) {
       return {
         success: false,
-        error: "Invalid API key. Please check your 0G Compute API key.",
+        error: `0G chain RPC at ${rpcUrl} returned HTTP ${response.status}`,
       };
     }
 
-    if (response.status === 404) {
-      return { success: true };
+    const body = (await response.json()) as { error?: { message?: string } };
+    if (body.error) {
+      return {
+        success: false,
+        error: `0G chain RPC error: ${body.error.message ?? "unknown"}`,
+      };
     }
-
-    return {
-      success: false,
-      error: `0G Compute gateway returned HTTP ${response.status}`,
-    };
+    return { success: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      error: `Could not reach 0G Compute gateway at ${gatewayUrl}: ${message}`,
+      error: `Could not reach 0G chain ${chainId}: ${message}`,
     };
   }
 }

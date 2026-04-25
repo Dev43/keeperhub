@@ -1,47 +1,32 @@
 import type { IntegrationPlugin } from "@/plugins/registry";
 import { registerIntegration } from "@/plugins/registry";
+import { ZERO_G_COMPUTE_DEFAULT_CHAIN_ID } from "./credentials";
 import { ZeroGComputeIcon } from "./icon";
 
 const zeroGComputePlugin: IntegrationPlugin = {
   type: "0g-compute",
   label: "0G Compute",
   description:
-    "Run sealed inference against models hosted on the 0G Compute network",
+    "Run verifiable inference against models hosted on the 0G Compute network. Each request is signed by your organization's KeeperHub wallet via the 0G serving broker.",
 
   icon: ZeroGComputeIcon,
 
-  requiresCredentials: true,
+  // Signs through the org's KeeperHub wallet (Para or Turnkey). Defaults
+  // target 0G Galileo testnet, so credentials are optional and only used to
+  // override the chain id.
+  requiresCredentials: false,
 
   formFields: [
     {
-      id: "network",
-      label: "Network",
+      id: "chainId",
+      label: "0G Chain ID",
       type: "text",
-      placeholder: "testnet",
-      defaultValue: "testnet",
-      configKey: "network",
-      envVar: "ZERO_G_COMPUTE_NETWORK",
+      placeholder: String(ZERO_G_COMPUTE_DEFAULT_CHAIN_ID),
+      defaultValue: String(ZERO_G_COMPUTE_DEFAULT_CHAIN_ID),
+      configKey: "chainId",
+      envVar: "ZERO_G_COMPUTE_CHAIN_ID",
       helpText:
-        "0G network: 'mainnet' or 'testnet'. Selects the default gateway URL when one is not provided below.",
-    },
-    {
-      id: "gatewayUrl",
-      label: "Gateway URL (optional)",
-      type: "url",
-      placeholder: "https://compute-testnet.0g.ai",
-      configKey: "gatewayUrl",
-      envVar: "ZERO_G_COMPUTE_GATEWAY_URL",
-      helpText:
-        "Override the default gateway endpoint for the selected network",
-    },
-    {
-      id: "apiKey",
-      label: "API Key",
-      type: "password",
-      placeholder: "0gc_...",
-      configKey: "apiKey",
-      envVar: "ZERO_G_COMPUTE_API_KEY",
-      helpText: "API key for 0G Compute",
+        "0G chain to sign serving-broker requests on. Defaults to 16601 (Galileo testnet); 16661 selects mainnet.",
     },
   ],
 
@@ -57,25 +42,31 @@ const zeroGComputePlugin: IntegrationPlugin = {
       slug: "sealed-inference",
       label: "Sealed Inference",
       description:
-        "Run a verifiable sealed-inference call against a 0G-served model",
+        "Run a verifiable inference call against a 0G-served model via the serving broker",
       category: "0G",
       stepFunction: "sealedInferenceStep",
-      stepImportPath: "sealed-inference",
+      stepImportPath: "inference",
       outputFields: [
         { field: "output", description: "Model output text" },
+        { field: "model", description: "Model name reported by the provider" },
+        { field: "provider", description: "Provider address used" },
         {
-          field: "attestation",
-          description: "TEE attestation blob (base64)",
+          field: "chatId",
+          description: "Chat completion id returned by the provider",
         },
-        { field: "modelHash", description: "Hash of the served model" },
+        {
+          field: "verified",
+          description:
+            "Result of broker.processResponse signature verification",
+        },
       ],
       configFields: [
         {
-          key: "model",
-          label: "Model",
+          key: "providerAddress",
+          label: "Provider Address",
           type: "template-input",
-          placeholder: "qwen2.5-0.5b-instruct",
-          example: "qwen2.5-0.5b-instruct",
+          placeholder: "0x...",
+          example: "0xf07240Efa67755B5311bc75784a061eDB47165Dd",
           required: true,
         },
         {

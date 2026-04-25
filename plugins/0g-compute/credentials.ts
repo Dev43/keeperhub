@@ -1,34 +1,21 @@
-export type ZeroGNetwork = "mainnet" | "testnet";
-
 export type ZeroGComputeCredentials = {
-  ZERO_G_COMPUTE_NETWORK?: string;
-  ZERO_G_COMPUTE_GATEWAY_URL?: string;
-  ZERO_G_COMPUTE_API_KEY?: string;
+  ZERO_G_COMPUTE_CHAIN_ID?: string;
 };
 
-// 0G Compute mainnet gateway is not yet published in official 0G docs; the
-// canonical hostname pattern is used here as a sane default and can be
-// overridden per-integration via the Gateway URL form field.
-export const ZERO_G_COMPUTE_GATEWAY_URLS: Record<ZeroGNetwork, string> = {
-  mainnet: "https://compute.0g.ai",
-  testnet: "https://compute-testnet.0g.ai",
-};
+// Chain id 16_601 = 0G Galileo testnet (seeded in scripts/seed/seed-chains.ts).
+// Mainnet is 16_661.
+export const ZERO_G_COMPUTE_DEFAULT_CHAIN_ID = 16_601;
 
-export function resolveZeroGComputeNetwork(value: string | undefined): ZeroGNetwork {
-  return value === "mainnet" ? "mainnet" : "testnet";
-}
-
-export function resolveZeroGComputeGatewayUrl(
+export function resolveZeroGComputeChainId(
   credentials: ZeroGComputeCredentials
-): string {
-  if (credentials.ZERO_G_COMPUTE_GATEWAY_URL) {
-    return credentials.ZERO_G_COMPUTE_GATEWAY_URL;
+): number {
+  const raw =
+    credentials.ZERO_G_COMPUTE_CHAIN_ID ??
+    process.env.ZERO_G_COMPUTE_CHAIN_ID ??
+    undefined;
+  if (!raw) {
+    return ZERO_G_COMPUTE_DEFAULT_CHAIN_ID;
   }
-  if (process.env.ZERO_G_COMPUTE_GATEWAY_URL) {
-    return process.env.ZERO_G_COMPUTE_GATEWAY_URL;
-  }
-  const network = resolveZeroGComputeNetwork(
-    credentials.ZERO_G_COMPUTE_NETWORK ?? process.env.ZERO_G_COMPUTE_NETWORK
-  );
-  return ZERO_G_COMPUTE_GATEWAY_URLS[network];
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : ZERO_G_COMPUTE_DEFAULT_CHAIN_ID;
 }
