@@ -37,6 +37,9 @@ type FundProviderResult =
       ledgerCreated: boolean;
       ledgerSkippedReason: string | null;
       transferredOG: string;
+      transferSkipped: boolean;
+      transferSkippedReason: string | null;
+      existingBalanceNeurons: string | null;
       provider: string;
     }
   | { success: false; error: string };
@@ -139,9 +142,33 @@ async function stepHandler(
   const { broker } = setup.context;
 
   try {
-    const ledger = await ensureLedger(broker, initialLedgerOG);
     const transferAmountNeurons = ethers.parseEther(String(transferAmountOG));
 
+    let existingBalanceNeurons: bigint | null = null;
+    try {
+      const account = await broker.inference.getAccount(providerAddress);
+      existingBalanceNeurons = BigInt(account.balance ?? 0);
+    } catch {
+      existingBalanceNeurons = null;
+    }
+
+    if (
+      existingBalanceNeurons !== null &&
+      existingBalanceNeurons >= transferAmountNeurons
+    ) {
+      return {
+        success: true,
+        ledgerCreated: false,
+        ledgerSkippedReason: "sub-account already exists",
+        transferredOG: "0",
+        transferSkipped: true,
+        transferSkippedReason: `sub-account already funded with ${ethers.formatEther(existingBalanceNeurons)} OG`,
+        existingBalanceNeurons: existingBalanceNeurons.toString(),
+        provider: providerAddress,
+      };
+    }
+
+    const ledger = await ensureLedger(broker, initialLedgerOG);
     await broker.ledger.transferFund(
       providerAddress,
       "inference",
@@ -153,6 +180,9 @@ async function stepHandler(
       ledgerCreated: ledger.created,
       ledgerSkippedReason: ledger.skippedReason,
       transferredOG: String(transferAmountOG),
+      transferSkipped: false,
+      transferSkippedReason: null,
+      existingBalanceNeurons: existingBalanceNeurons?.toString() ?? null,
       provider: providerAddress,
     };
   } catch (error) {

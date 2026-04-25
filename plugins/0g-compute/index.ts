@@ -98,7 +98,22 @@ const zeroGComputePlugin: IntegrationPlugin = {
         },
         {
           field: "transferredOG",
-          description: "Amount of OG transferred to the provider sub-account",
+          description:
+            "Amount of OG transferred to the provider sub-account ('0' if skipped)",
+        },
+        {
+          field: "transferSkipped",
+          description:
+            "True if transferFund was skipped because the sub-account already has sufficient balance",
+        },
+        {
+          field: "transferSkippedReason",
+          description: "Why transferFund was skipped, if applicable",
+        },
+        {
+          field: "existingBalanceNeurons",
+          description:
+            "Pre-existing sub-account balance in neurons (1 OG = 1e18 neurons), or null if no sub-account existed",
         },
         { field: "provider", description: "Provider address that was funded" },
       ],
