@@ -66,10 +66,10 @@ const zeroGStoragePlugin: IntegrationPlugin = {
   actions: [
     {
       slug: "kv-get",
-      label: "KV Get",
+      label: "0G: KV Get",
       description:
         "Read a value from 0G Storage by data root hash. Downloads the blob from the public indexer and decodes the StreamData wire format -- no self-hosted KV node required.",
-      category: "0G Storage",
+      category: "0G",
       stepFunction: "kvGetStep",
       stepImportPath: "kv-get",
       outputFields: [
@@ -128,10 +128,10 @@ const zeroGStoragePlugin: IntegrationPlugin = {
     },
     {
       slug: "kv-put",
-      label: "KV Put",
+      label: "0G: KV Put",
       description:
         "Write a value to a 0G Storage KV stream by submitting an on-chain Flow transaction signed by your KeeperHub wallet",
-      category: "0G Storage",
+      category: "0G",
       stepFunction: "kvPutStep",
       stepImportPath: "kv-put",
       outputFields: [
@@ -175,10 +175,10 @@ const zeroGStoragePlugin: IntegrationPlugin = {
     },
     {
       slug: "log-append",
-      label: "Log Append",
+      label: "0G: Log Append",
       description:
         "Append an entry to an append-only log by uploading a signed blob to 0G Storage with your KeeperHub wallet",
-      category: "0G Storage",
+      category: "0G",
       stepFunction: "logAppendStep",
       stepImportPath: "log-append",
       outputFields: [

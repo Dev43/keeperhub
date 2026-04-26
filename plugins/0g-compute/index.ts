@@ -40,10 +40,10 @@ const zeroGComputePlugin: IntegrationPlugin = {
   actions: [
     {
       slug: "list-providers",
-      label: "List Providers",
+      label: "0G: List Providers",
       description:
         "List 0G Compute serving providers (model, endpoint, address, pricing) available on the selected network",
-      category: "0G Compute",
+      category: "0G",
       stepFunction: "listProvidersStep",
       stepImportPath: "list-providers",
       outputFields: [
@@ -81,10 +81,10 @@ const zeroGComputePlugin: IntegrationPlugin = {
     },
     {
       slug: "fund-provider",
-      label: "Fund Provider",
+      label: "0G: Fund Provider",
       description:
         "Initialize the org's 0G ledger (one-time, >=3 OG) and transfer funds to a provider's inference sub-account (recommended >=1 OG). Required once per provider before Inference works.",
-      category: "0G Compute",
+      category: "0G",
       stepFunction: "fundProviderStep",
       stepImportPath: "fund-provider",
       outputFields: [
@@ -162,10 +162,10 @@ const zeroGComputePlugin: IntegrationPlugin = {
     },
     {
       slug: "inference",
-      label: "Inference",
+      label: "0G: Inference",
       description:
         "Run a verifiable inference call against a 0G-served model via the serving broker",
-      category: "0G Compute",
+      category: "0G",
       stepFunction: "inferenceStep",
       stepImportPath: "inference",
       outputFields: [
