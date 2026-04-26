@@ -49,11 +49,11 @@ vi.mock("../../plugins/0g-compute/server-core", () => ({
 
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
-import { buildBrokerContext } from "../../plugins/0g-compute/server-core";
 import {
   resolveZeroGComputeChainId,
   ZERO_G_COMPUTE_DEFAULT_CHAIN_ID,
 } from "../../plugins/0g-compute/credentials";
+import { buildBrokerContext } from "../../plugins/0g-compute/server-core";
 import { inferenceStep } from "../../plugins/0g-compute/steps/inference";
 
 type BrokerSetup = Awaited<ReturnType<typeof buildBrokerContext>>;
@@ -151,7 +151,7 @@ describe("inferenceStep", () => {
     fetchCredentialsMock.mockResolvedValue({});
 
     const result = await inferenceStep({
-      providerAddress: "0xprovider",
+      providerAddress: "0x0000000000000000000000000000000000000001",
       prompt: "hi",
       integrationId: "int_1",
     });
@@ -170,7 +170,7 @@ describe("inferenceStep", () => {
     });
 
     const result = await inferenceStep({
-      providerAddress: "0xprovider",
+      providerAddress: "0x0000000000000000000000000000000000000001",
       prompt: "hi",
       integrationId: "int_1",
       _context: CTX,
@@ -198,7 +198,7 @@ describe("inferenceStep", () => {
     } as Response);
 
     const result = await inferenceStep({
-      providerAddress: "0xprovider",
+      providerAddress: "0x0000000000000000000000000000000000000001",
       prompt: "hi",
       integrationId: "int_1",
       _context: CTX,
@@ -208,11 +208,11 @@ describe("inferenceStep", () => {
       success: true,
       output: "hello",
       model: "qwen",
-      provider: "0xprovider",
+      provider: "0x0000000000000000000000000000000000000001",
       chatId: "chat_1",
       verified: true,
     });
-    expect(acknowledgeProviderSigner).toHaveBeenCalledWith("0xprovider");
+    expect(acknowledgeProviderSigner).toHaveBeenCalledWith("0x0000000000000000000000000000000000000001");
     expect(getRequestHeaders).toHaveBeenCalled();
     expect(buildBrokerContextMock).toHaveBeenCalledWith({}, "org_1", "user_1");
   });
@@ -230,7 +230,7 @@ describe("inferenceStep", () => {
     } as Response);
 
     const result = await inferenceStep({
-      providerAddress: "0xprovider",
+      providerAddress: "0x0000000000000000000000000000000000000001",
       prompt: "hi",
       integrationId: "int_1",
       _context: CTX,

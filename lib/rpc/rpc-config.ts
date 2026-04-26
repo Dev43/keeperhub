@@ -459,7 +459,9 @@ export function getPrivateRpcUrl(
 export function getUsePrivateMempoolRpc(
   options: GetPrivateMempoolOptions
 ): boolean {
-  return options.rpcConfig[options.jsonKey]?.isPrivateMempoolRpcEnabled ?? false;
+  return (
+    options.rpcConfig[options.jsonKey]?.isPrivateMempoolRpcEnabled ?? false
+  );
 }
 
 /**

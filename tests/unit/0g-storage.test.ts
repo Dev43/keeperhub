@@ -37,11 +37,6 @@ vi.mock("../../plugins/0g-storage/server-core", () => ({
 import { fetchCredentials } from "@/lib/credential-fetcher";
 import { resolveOrganizationContext } from "@/lib/web3/resolve-org-context";
 import {
-  buildWriteContext,
-  uploadBlob,
-  writeKvEntry,
-} from "../../plugins/0g-storage/server-core";
-import {
   resolveZeroGChainId,
   resolveZeroGFlowAddress,
   resolveZeroGIndexerUrl,
@@ -49,6 +44,11 @@ import {
   ZERO_G_DEFAULT_FLOW_ADDRESS,
   ZERO_G_DEFAULT_INDEXER_URL,
 } from "../../plugins/0g-storage/credentials";
+import {
+  buildWriteContext,
+  uploadBlob,
+  writeKvEntry,
+} from "../../plugins/0g-storage/server-core";
 import { kvGetStep } from "../../plugins/0g-storage/steps/kv-get";
 import { kvPutStep } from "../../plugins/0g-storage/steps/kv-put";
 import { logAppendStep } from "../../plugins/0g-storage/steps/log-append";
@@ -176,8 +176,7 @@ describe("kvGetStep", () => {
     buf.writeUInt32BE(1, off);
     off += 4;
     Buffer.from(
-      "00000000000000000000000000000000000000000000000000000000" +
-        "7068756c",
+      "000000000000000000000000000000000000000000000000000000007068756c",
       "hex"
     ).copy(buf, off);
     off += 32;
@@ -191,7 +190,10 @@ describe("kvGetStep", () => {
 
     fetchSpy.mockResolvedValue({
       ok: true,
-      arrayBuffer: () => Promise.resolve(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)),
+      arrayBuffer: () =>
+        Promise.resolve(
+          buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)
+        ),
       headers: new Headers({ "content-type": "application/octet-stream" }),
     } as unknown as Response);
 

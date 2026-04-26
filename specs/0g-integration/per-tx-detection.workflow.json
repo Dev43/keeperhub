@@ -4,7 +4,7 @@
   "trigger": {
     "type": "Block",
     "config": {
-      "chainId": 16601,
+      "chainId": 16602,
       "blockInterval": 1
     }
   },
@@ -13,7 +13,7 @@
       "id": "queryTxs",
       "type": "web3/query-transactions",
       "config": {
-        "network": "16601",
+        "network": "16602",
         "contractAddress": "{{TODO_FAKE_LENDING_POOL_ADDRESS}}",
         "fromBlock": "{{trigger.blockNumber}}",
         "toBlock": "{{trigger.blockNumber}}",
@@ -24,6 +24,8 @@
       "id": "loadCorpus",
       "type": "0g-storage/kv-get",
       "config": {
+        "network": "16602",
+        "rootHash": "{{env.PHULAX_EXPLOIT_CORPUS_ROOT_HASH}}",
         "streamId": "{{env.PHULAX_EXPLOIT_CORPUS_STREAM_ID}}",
         "key": "phulax/exploit-corpus/v1"
       }
@@ -57,7 +59,7 @@
       "type": "web3/write-contract",
       "showWhen": { "field": "shouldFire", "equals": "true" },
       "config": {
-        "network": "16601",
+        "network": "16602",
         "contractAddress": "{{env.PHULAX_ACCOUNT_ADDRESS}}",
         "functionName": "withdraw",
         "args": ["{{env.PHULAX_ADAPTER_ADDRESS}}"],
