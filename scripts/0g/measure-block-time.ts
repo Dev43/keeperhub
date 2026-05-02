@@ -1,23 +1,24 @@
 /**
  * 0G Galileo testnet block-time, RPC-latency, and WSS-stability probe.
  *
- * Day-1 prerequisite for the Phulax detection budget: detection has to finish
- * inside one block. This script samples block production and RPC latency over
- * a configurable window and reports p50/p95 for each.
+ * Samples block production and RPC latency over a configurable window and
+ * reports p50/p95 for each. Useful when sizing per-block detection budgets
+ * for any workflow whose `Block` trigger fires on 0G Galileo.
  *
  * Usage:
  *   pnpm tsx scripts/0g/measure-block-time.ts [--blocks 200] [--wss-secs 1800]
  *
  * Env:
- *   CHAIN_0G_TESTNET_PRIMARY_RPC   override HTTPS RPC
- *   CHAIN_0G_TESTNET_PRIMARY_WSS   WSS endpoint for eth_subscribe("newHeads")
+ *   CHAIN_ZERO_G_GALILEO_PRIMARY_RPC   override HTTPS RPC
+ *   CHAIN_ZERO_G_GALILEO_PRIMARY_WSS   WSS endpoint for eth_subscribe("newHeads")
  */
 
 import "dotenv/config";
 
 const HTTPS_RPC =
-  process.env.CHAIN_0G_TESTNET_PRIMARY_RPC ?? "https://evmrpc-testnet.0g.ai";
-const WSS_RPC = process.env.CHAIN_0G_TESTNET_PRIMARY_WSS;
+  process.env.CHAIN_ZERO_G_GALILEO_PRIMARY_RPC ??
+  "https://evmrpc-testnet.0g.ai";
+const WSS_RPC = process.env.CHAIN_ZERO_G_GALILEO_PRIMARY_WSS;
 
 type RpcResponse<T> = { result?: T; error?: { message: string } };
 
@@ -79,7 +80,7 @@ function probeWss(durationSecs: number): Promise<void> {
   return new Promise((resolve) => {
     if (!WSS_RPC) {
       process.stdout.write(
-        "wss: CHAIN_0G_TESTNET_PRIMARY_WSS not set, skipping subscription probe\n"
+        "wss: CHAIN_ZERO_G_GALILEO_PRIMARY_WSS not set, skipping subscription probe\n"
       );
       resolve();
       return;

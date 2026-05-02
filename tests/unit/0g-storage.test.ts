@@ -182,7 +182,7 @@ describe("kvGetStep", () => {
     off += 32;
     buf.writeUIntBE(18, off, 3);
     off += 3;
-    buf.write("phulax/smoke/hello", off, "utf8");
+    buf.write("smoke/hello", off, "utf8");
     off += 18;
     buf.writeBigUInt64BE(BigInt(5), off);
     off += 8;
@@ -207,12 +207,12 @@ describe("kvGetStep", () => {
       value: "world",
       streamId:
         "0x000000000000000000000000000000000000000000000000000000007068756c",
-      key: "phulax/smoke/hello",
+      key: "smoke/hello",
       entries: [
         {
           streamId:
             "0x000000000000000000000000000000000000000000000000000000007068756c",
-          key: "phulax/smoke/hello",
+          key: "smoke/hello",
           value: "world",
         },
       ],

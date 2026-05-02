@@ -121,7 +121,7 @@ const zeroGStoragePlugin: IntegrationPlugin = {
           key: "key",
           label: "Key (optional filter)",
           type: "template-input",
-          placeholder: "phulax/smoke/hello",
+          placeholder: "my-app/keys/example",
           required: false,
         },
       ],
