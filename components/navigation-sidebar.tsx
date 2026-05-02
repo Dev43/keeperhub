@@ -10,13 +10,15 @@ import {
   Github,
   Globe,
   Info,
-  List,
   Loader2,
   Plus,
+  Workflow as WorkflowIcon,
   X,
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useAuthPrompt } from "@/components/auth/provider";
 import { DiscordIcon } from "@/components/icons/discord-icon";
 import { AddressBookOverlay } from "@/components/overlays/address-book-overlay";
 import { FeedbackOverlay } from "@/components/overlays/feedback-overlay";
@@ -411,13 +413,21 @@ const ACTION_ITEM_IDS: ReadonlySet<string> = new Set([
   "address-book",
 ]);
 
+type NavItemDef = {
+  id: string;
+  icon: typeof Plus;
+  label: string;
+  href: string | null;
+  requireAuth: boolean;
+};
+
 function NavItem({
   item,
   active,
   showLabels,
   onClick,
 }: {
-  item: { id: string; icon: typeof Plus; label: string; href: string | null };
+  item: NavItemDef;
   active: boolean;
   showLabels: boolean;
   onClick: () => void;
@@ -478,37 +488,48 @@ function NavItem({
   );
 }
 
-const NAV_ITEMS = [
+const NAV_ITEMS: NavItemDef[] = [
+  {
+    id: "hub",
+    icon: Globe,
+    label: "Hub",
+    href: "/hub",
+    requireAuth: false,
+  },
   {
     id: "workflows",
-    icon: List,
-    label: "All Workflows",
-    href: null as string | null,
+    icon: WorkflowIcon,
+    label: "Workflows",
+    href: null,
+    requireAuth: false,
   },
-  { id: "hub", icon: Globe, label: "Hub", href: "/hub" as string | null },
   {
     id: "analytics",
     icon: BarChart3,
     label: "Analytics",
-    href: "/analytics" as string | null,
+    href: "/analytics",
+    requireAuth: true,
   },
   {
     id: "earnings",
     icon: DollarSign,
     label: "Earnings",
-    href: "/earnings" as string | null,
+    href: "/earnings",
+    requireAuth: true,
   },
   {
     id: "address-book",
     icon: Bookmark,
     label: "Address Book",
-    href: null as string | null,
+    href: null,
+    requireAuth: true,
   },
 ];
 
 export function NavigationSidebar(): React.ReactNode {
   const isMobile = useIsMobile();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
+  const { openAuthPrompt } = useAuthPrompt();
   const { open: openOverlay } = useOverlay();
   const router = useRouter();
   const pathname = usePathname();
@@ -539,10 +560,21 @@ export function NavigationSidebar(): React.ReactNode {
   }, []);
 
   useEffect(() => {
+    // NAV-04: gate fetchData on session resolution. While pending, do nothing
+    // (the isPending skeleton renders). When signed-out / anonymous, skip the
+    // network call entirely and clear the loading flag so the sidebar is not
+    // stuck spinning. Only authenticated users hit /api/workflow.getAll etc.
+    if (isPending) {
+      return;
+    }
+    if (!session?.user || isAnonymousUser(session.user)) {
+      setDataLoading(false);
+      return;
+    }
     fetchData().catch(() => {
       /* intentional noop */
     });
-  }, [fetchData]);
+  }, [isPending, session, fetchData]);
 
   useEffect(
     () =>
@@ -717,6 +749,10 @@ export function NavigationSidebar(): React.ReactNode {
         .catch(() => [] as SavedWorkflow[]);
       const visible = existing.filter((w) => w.name !== "__current__");
       if (visible.length > 0) {
+        // Anonymous users are capped at one workflow. Surface the cap so the
+        // click isn't silently a no-op visually, then drop them onto their
+        // existing workflow.
+        toast.info("Sign in to create more workflows.");
         const latest = visible.sort(
           (a, b) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -748,8 +784,18 @@ export function NavigationSidebar(): React.ReactNode {
     router.push(`/workflows/${newWorkflow.id}`);
   }
 
-  function handleNavClick(id: string, href: string | null): void {
-    if (id === "workflows") {
+  function handleNavClick(item: NavItemDef): void {
+    // NAV-02: requireAuth items click-gate to the shared auth modal instead
+    // of routing to a 401 page when the user is signed-out or anonymous.
+    if (item.requireAuth && (!session?.user || isAnonymousUser(session.user))) {
+      openAuthPrompt({
+        action: `nav:${item.id}`,
+        redirectTo: item.href ?? undefined,
+      });
+      return;
+    }
+
+    if (item.id === "workflows") {
       if (navState.state.panels.projects === "closed") {
         navState.setPanelState("projects", "open");
       } else {
@@ -757,14 +803,14 @@ export function NavigationSidebar(): React.ReactNode {
       }
       return;
     }
-    if (id === "address-book") {
+    if (item.id === "address-book") {
       navState.closeAll();
       openOverlay(AddressBookOverlay);
       return;
     }
     navState.closeAll();
-    if (href) {
-      router.push(href);
+    if (item.href) {
+      router.push(item.href);
     }
   }
 
@@ -800,18 +846,23 @@ export function NavigationSidebar(): React.ReactNode {
     navState.setPanelState("workflows", "open");
   }
 
-  const navItems = NAV_ITEMS.filter((item) => {
-    if (item.id === "analytics") {
-      return !isAnonymous;
-    }
-    if (item.id === "earnings") {
-      return !isAnonymous;
-    }
-    if (item.id === "address-book") {
-      return !isAnonymous;
-    }
-    return true;
-  });
+  // NAV-01: render every nav item for everyone (anonymous, signed-out, signed-in).
+  // Click-gating for requireAuth items happens in handleNavClick.
+  const navItems = NAV_ITEMS;
+
+  // NAV-03: branch on isPending FIRST. While the better-auth session resolves,
+  // render a neutral skeleton with the same width as the fully-loaded sidebar
+  // so server and client emit the same DOM (no React 19 hydration warning,
+  // no flicker, no layout shift).
+  if (isPending) {
+    return (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed top-[calc(60px+var(--app-banner-height,0px))] bottom-0 left-0 z-40 flex flex-col bg-background"
+        style={{ width: currentWidth }}
+      />
+    );
+  }
 
   return (
     <>
@@ -843,7 +894,7 @@ export function NavigationSidebar(): React.ReactNode {
               active={isActive(item.id)}
               item={item}
               key={item.id}
-              onClick={() => handleNavClick(item.id, item.href)}
+              onClick={() => handleNavClick(item)}
               showLabels={showLabels}
             />
           ))}
@@ -949,7 +1000,7 @@ export function NavigationSidebar(): React.ReactNode {
         onCollapse={() => navState.setPanelState("projects", "collapsed")}
         onExpand={() => navState.setPanelState("projects", "open")}
         state={navState.state.panels.projects}
-        title="All Workflows"
+        title="Workflows"
       >
         <ProjectsPanel
           activeWorkflowId={workflowId}

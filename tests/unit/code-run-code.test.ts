@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-vi.mock("@/lib/steps/step-handler", () => ({
+vi.mock("@/lib/workflow/executor/step-handler", () => ({
   withStepLogging: (_input: unknown, fn: () => unknown) => fn(),
 }));
 
@@ -442,6 +442,7 @@ describe("code/run-code - sandbox globals", () => {
         "DATABASE_URL",
         "BETTER_AUTH_SECRET",
         "OAUTH_JWT_SECRET",
+        "MCP_SESSION_SECRET",
         "STRIPE_SECRET_KEY",
         "GITHUB_CLIENT_SECRET",
         "GOOGLE_CLIENT_SECRET",

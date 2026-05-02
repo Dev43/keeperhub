@@ -97,8 +97,8 @@ const zeroGStoragePlugin: IntegrationPlugin = {
           type: "select",
           defaultValue: String(ZERO_G_DEFAULT_CHAIN_ID),
           options: [
-            { value: "16602", label: "0G Galileo Testnet (16602)" },
-            { value: "16661", label: "0G Mainnet (16661)" },
+            { value: "16602", label: "0G Galileo (16602)" },
+            { value: "16661", label: "0G (16661)" },
           ],
         },
         {
@@ -145,8 +145,8 @@ const zeroGStoragePlugin: IntegrationPlugin = {
           type: "select",
           defaultValue: String(ZERO_G_DEFAULT_CHAIN_ID),
           options: [
-            { value: "16602", label: "0G Galileo Testnet (16602)" },
-            { value: "16661", label: "0G Mainnet (16661)" },
+            { value: "16602", label: "0G Galileo (16602)" },
+            { value: "16661", label: "0G (16661)" },
           ],
         },
         {

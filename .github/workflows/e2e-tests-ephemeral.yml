@@ -198,6 +198,7 @@ jobs:
           better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
           test_api_key: ${{ secrets.TEST_API_KEY }}
           chain_rpc_config: ${{ secrets.CHAIN_RPC_CONFIG }}
+          integration_encryption_key: ${{ secrets.TEST_INTEGRATION_ENCRYPTION_KEY }}
 
       - name: Run E2E Vitest tests
         run: pnpm test:e2e:vitest
@@ -290,6 +291,7 @@ jobs:
           better_auth_secret: ${{ secrets.BETTER_AUTH_SECRET }}
           test_api_key: ${{ secrets.TEST_API_KEY }}
           chain_rpc_config: ${{ secrets.CHAIN_RPC_CONFIG }}
+          integration_encryption_key: ${{ secrets.TEST_INTEGRATION_ENCRYPTION_KEY }}
 
       - name: Run Playwright tests
         run: pnpm test:e2e
@@ -306,6 +308,12 @@ jobs:
           PARA_PORTAL_API_KEY: ${{ secrets.PARA_PORTAL_API_KEY }}
           CI: true
           TEST_API_KEY: ${{ secrets.TEST_API_KEY }}
+          # Start application step above runs `pnpm build && pnpm start`
+          # (production), so back-forward-hydration.test.ts must assert
+          # the prod-mode contract (no reload-driven recovery). Without
+          # this var, the test defaults to dev-mode assertions and fails
+          # against the prod server.
+          NEXT_BUILD_MODE: production
 
       - name: Dump app container logs
         if: failure() && inputs.image_tag != ''

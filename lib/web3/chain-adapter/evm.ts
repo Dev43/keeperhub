@@ -6,7 +6,7 @@ import {
   getAddressUrl as buildAddressUrl,
   getTransactionUrl as buildTransactionUrl,
 } from "@/lib/explorer";
-import type { RpcProviderManager } from "@/lib/rpc-provider";
+import type { RpcProviderManager } from "@/lib/rpc/providers";
 import type { AdaptiveGasStrategy, GasConfig } from "../gas-strategy";
 import type { NonceManager, NonceSession } from "../nonce-manager";
 import type {
@@ -76,12 +76,12 @@ export class EvmChainAdapter implements ChainAdapter {
 
     const gasConfig = await this.gasStrategy.getGasConfig(
       provider,
-      options.triggerType,
       estimatedGas,
       this.chainId,
       options.gasOverrides.multiplierOverride,
       options.gasOverrides.gasLimitOverride,
-      options.rpcManager
+      options.rpcManager,
+      options.gasOverrides.priorityFeeOverride
     );
 
     const tx = await signer.sendTransaction({
@@ -171,12 +171,12 @@ export class EvmChainAdapter implements ChainAdapter {
 
     const gasConfig = await this.gasStrategy.getGasConfig(
       provider,
-      options.triggerType,
       estimatedGas,
       this.chainId,
       options.gasOverrides.multiplierOverride,
       options.gasOverrides.gasLimitOverride,
-      options.rpcManager
+      options.rpcManager,
+      options.gasOverrides.priorityFeeOverride
     );
 
     const tx = await contract[request.functionKey](...request.args, {

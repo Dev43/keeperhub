@@ -24,20 +24,15 @@ import { getTransactionUrl } from "@/lib/explorer";
 import { ErrorCategory, logUserError } from "@/lib/logging";
 import { initializeWalletSigner } from "@/lib/para/wallet-helpers";
 import { getRpcProviderFromUrls } from "@/lib/rpc/provider-factory";
-import type { RpcProviderManager } from "@/lib/rpc-provider";
-import { isNonRetryableError } from "@/lib/rpc-provider/error-classification";
+import type { RpcProviderManager } from "@/lib/rpc/providers";
+import { isNonRetryableError } from "@/lib/rpc/providers/error-classification";
 import {
   type RpcMetricsContext,
   rpcMetricsCtx,
   withRpcMetrics,
-} from "@/lib/rpc-provider/with-rpc-metrics";
-import {
-  type TriggerType as GasTriggerType,
-  getGasStrategy,
-} from "./gas-strategy";
+} from "@/lib/rpc/providers/with-rpc-metrics";
+import { getGasStrategy } from "./gas-strategy";
 import { getNonceManager, type NonceSession } from "./nonce-manager";
-
-export type TriggerType = GasTriggerType;
 
 export type TransactionContext = {
   organizationId: string;
@@ -45,7 +40,6 @@ export type TransactionContext = {
   workflowId?: string;
   chainId: number;
   rpcUrl: string;
-  triggerType?: TriggerType;
   rpcManager?: RpcProviderManager;
 };
 
@@ -315,7 +309,6 @@ export async function executeTransaction(
 
     const gasConfig = await gasStrategy.getGasConfig(
       provider,
-      context.triggerType ?? "manual",
       estimatedGas,
       context.chainId,
       undefined,
@@ -404,7 +397,6 @@ export async function executeContractTransaction(
 
     const gasConfig = await gasStrategy.getGasConfig(
       provider as ethers.Provider,
-      context.triggerType ?? "manual",
       estimatedGas,
       context.chainId,
       undefined,

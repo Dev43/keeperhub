@@ -6,9 +6,9 @@ import {
   type WriteContractResult,
   writeContractCore,
 } from "@/plugins/web3/steps/write-contract-core";
-import { resolveAbi } from "@/lib/abi-cache";
+import { resolveAbi } from "@/lib/abi/cache";
 import { getProtocol } from "@/lib/protocol-registry";
-import { type StepInput, withStepLogging } from "@/lib/steps/step-handler";
+import { type StepInput, withStepLogging } from "@/lib/workflow/executor/step-handler";
 import { applyEncodeTransformsNamed } from "@/lib/protocol-encode-transforms";
 import {
   type ProtocolMeta,
@@ -46,8 +46,8 @@ function buildFunctionArgs(
 
   const rawInputs = protocolAction.inputs.map((inp) => {
     const raw = input[inp.name];
-    if (raw === undefined) {
-      return { name: inp.name, value: "" };
+    if (raw === undefined || raw === "") {
+      return { name: inp.name, value: inp.default ?? "" };
     }
     const value = typeof raw === "object" ? JSON.stringify(raw) : String(raw);
     return { name: inp.name, value };
@@ -148,7 +148,6 @@ export async function protocolWriteStep(
       _context: input._context
         ? {
             executionId: input._context.executionId,
-            triggerType: input._context.triggerType,
           }
         : undefined,
     };

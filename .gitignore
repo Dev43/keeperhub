@@ -25,6 +25,10 @@ tests/e2e/playwright/.auth/
 /out/
 /.swc/
 
+# Workflow DevKit-generated routes/manifest
+# (machine-specific pnpm hashes; regenerated on every install)
+/public/.well-known/
+
 # production
 /build
 
@@ -101,9 +105,10 @@ docker-compose.override.yml
 
 # generated files
 lib/types/integration.ts
-lib/codegen-registry.ts
+lib/workflow/codegen/registry.ts
 lib/step-registry.ts
 lib/output-display-configs.ts
+lib/credential-map.ts
 public/monaco/
 
 # local kubernetes generated values (from templates)

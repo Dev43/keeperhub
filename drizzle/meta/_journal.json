@@ -428,6 +428,41 @@
       "when": 1777112436741,
       "tag": "0060_keep_344_wallet_lock_ttl",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1777200000000,
+      "tag": "0061_tempo_testnet_chain_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1777267669472,
+      "tag": "0062_plan_overrides",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1777423425214,
+      "tag": "0063_keep_377_arbitrum_sepolia_usdc_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1777429262207,
+      "tag": "0064_keep_239_hash_session_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1777680000000,
+      "tag": "0065_keep_384_web3_integration_unique",
+      "breakpoints": true
     }
   ]
 }

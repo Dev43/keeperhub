@@ -37,15 +37,16 @@ import { GoLiveOverlay } from "@/components/overlays/go-live-overlay";
 import { ListingOverlay } from "@/components/overlays/listing-overlay";
 import { Switch } from "@/components/ui/switch";
 import { WalletToolbarButton } from "@/components/workflow/wallet-toolbar-button";
-import { BUILTIN_NODE_ID } from "@/lib/builtin-variables";
+import { BUILTIN_NODE_ID } from "@/lib/workflow/editor/builtin-variables";
+import { useAuthPrompt } from "@/components/auth/provider";
 import { isAnonymousUser } from "@/lib/is-anonymous";
 import { api, ApiError, type Project, type Tag } from "@/lib/api-client";
-import { authClient, useSession } from "@/lib/auth-client";
-import { getCustomLogo } from "@/lib/extension-registry";
+import { useSession } from "@/lib/auth-client";
+import { getCustomLogo } from "@/lib/workflow/editor/extension-registry";
 import { integrationsAtom } from "@/lib/integrations-store";
 import type { IntegrationType } from "@/lib/types/integration";
 import { cn } from "@/lib/utils";
-import { evaluateShowWhen, type ShowWhen } from "@/lib/workflow/show-when";
+import { evaluateShowWhen, type ShowWhen } from "@/lib/workflow/editor/show-when";
 import {
   addNodeAtom,
   canRedoAtom,
@@ -78,6 +79,7 @@ import {
   selectedEdgeAtom,
   selectedExecutionIdAtom,
   selectedNodeAtom,
+  shouldShowEnableSwitch,
   triggerExecuteAtom,
   undoAtom,
   updateNodeDataAtom,
@@ -85,7 +87,7 @@ import {
   type WorkflowNode,
   WorkflowTriggerEnum,
   type WorkflowVisibility,
-} from "@/lib/workflow-store";
+} from "@/lib/workflow/store";
 import {
   findActionById,
   flattenConfigFields,
@@ -95,8 +97,8 @@ import {
 import { Panel } from "../ai-elements/panel";
 import { ConfigurationOverlay } from "../overlays/configuration-overlay";
 import { ConfirmOverlay } from "../overlays/confirm-overlay";
-import { ExportWorkflowOverlay } from "../overlays/export-workflow-overlay";
 import { useOverlay } from "../overlays/overlay-provider";
+import { WorkflowIOOverlay } from "../overlays/workflow-io-overlay";
 import { WorkflowIssuesOverlay } from "../overlays/workflow-issues-overlay";
 import {
   Tooltip,
@@ -806,8 +808,14 @@ function useWorkflowState() {
   );
   const [priceUsdc, setPriceUsdc] = useAtom(currentWorkflowPriceUsdcAtom);
 
-  // Load all workflows and projects on mount
+  // Load all workflows and projects on mount.
+  // NAV-04: persistent toolbar mounts on every route including `/`. Skip the
+  // fetches for anonymous / signed-out users so they do not see 401 spam in the
+  // network log on initial load. Re-runs when the session resolves.
   useEffect(() => {
+    if (!session?.user || isAnonymousUser(session.user)) {
+      return;
+    }
     const loadAllWorkflows = async () => {
       try {
         const [workflows, projects, tags] = await Promise.all([
@@ -823,7 +831,7 @@ function useWorkflowState() {
       }
     };
     loadAllWorkflows();
-  }, []);
+  }, [session]);
 
   return {
     nodes,
@@ -891,6 +899,8 @@ function useWorkflowState() {
 // Hook for workflow actions
 function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   const { open: openOverlay } = useOverlay();
+  const { openAuthPrompt } = useAuthPrompt();
+  const pathname = usePathname();
   const {
     currentWorkflowId,
     workflowName,
@@ -1015,50 +1025,36 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
 
   const handleDownload = async () => {
     if (!currentWorkflowId) {
-      toast.error("Please save the workflow before downloading");
+      toast.error("Please save the workflow before exporting");
       return;
     }
 
     setIsDownloading(true);
-    toast.info("Preparing workflow files for download...");
 
     try {
-      const result = await api.workflow.download(currentWorkflowId);
+      const exportPayload = await api.workflow.download(currentWorkflowId);
 
-      if (!result.success) {
-        throw new Error(result.error || "Failed to prepare download");
-      }
-
-      if (!result.files) {
-        throw new Error("No files to download");
-      }
-
-      // Import JSZip dynamically
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-
-      // Add all files to the zip
-      for (const [path, content] of Object.entries(result.files)) {
-        zip.file(path, content);
-      }
-
-      // Generate the zip file
-      const blob = await zip.generateAsync({ type: "blob" });
-
-      // Create download link
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], {
+        type: "application/json",
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
+      const slug =
+        workflowName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(
+          /^-+|-+$/g,
+          ""
+        ) || "workflow";
       a.href = url;
-      a.download = `${workflowName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-workflow.zip`;
+      a.download = `${slug}.workflow.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success("Workflow downloaded successfully!");
+      toast.success("Workflow exported");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to download workflow"
+        error instanceof Error ? error.message : "Failed to export workflow"
       );
     } finally {
       setIsDownloading(false);
@@ -1203,22 +1199,40 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
     }
   };
 
-  const handleDuplicate = async () => {
-    if (!currentWorkflowId) {
+  const handleUseTemplate = async () => {
+    const isAnon = !session?.user || isAnonymousUser(session.user);
+
+    // HUB-03 / HUB-06: anonymous + auto-anonymous users go through the
+    // auth modal. The pending_template cookie carries the workflowId
+    // across the OAuth round-trip; PendingTemplateRunner picks it up
+    // post-callback and fires the duplicate exactly once.
+    if (isAnon) {
+      if (!currentWorkflowId) {
+        toast.error("Cannot use template: workflow ID missing");
+        return;
+      }
+      try {
+        await fetch("/api/auth/template-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workflowId: currentWorkflowId }),
+        });
+      } catch (err) {
+        console.error("[UseTemplate] Failed to set intent cookie:", err);
+        // Fall through and open the modal anyway — user retries on return.
+      }
+      openAuthPrompt({ action: "use-template", redirectTo: pathname });
       return;
     }
 
+    // Signed-in real (non-owner) user — existing duplicate flow.
+    if (!currentWorkflowId) {
+      return;
+    }
     setIsDuplicating(true);
     try {
-      // Auto-sign in as anonymous if user has no session
-      if (!session?.user) {
-        await authClient.signIn.anonymous();
-        // Wait for session to be established
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      }
-
       const newWorkflow = await api.workflow.duplicate(currentWorkflowId);
-      toast.success("Workflow duplicated successfully");
+      toast.success("Template ready in your workflows");
       router.push(`/workflows/${newWorkflow.id}`);
     } catch (error) {
       console.error("Failed to duplicate workflow:", error);
@@ -1239,7 +1253,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
     handleToggleVisibility,
     handleEditPublicSettings, // keeperhub custom field //
     handleToggleEnabled,
-    handleDuplicate,
+    handleUseTemplate,
     handleOpenListing, // keeperhub custom field //
   };
 }
@@ -1267,9 +1281,13 @@ function ToolbarActions({
   const selectedEdge = edges.find((edge) => edge.id === selectedEdgeId);
   const hasSelection = selectedNode || selectedEdge;
 
-  // For non-owners viewing public workflows, don't show toolbar actions
-  // (Duplicate button is now in the main toolbar next to Sign In)
-  if (workflowId && !state.isOwner) {
+  // Hide toolbar actions (Run, Save, Edit, Settings) in preview context:
+  // either the viewer is not the owner, OR the workflow is publicly visible
+  // (preview surface). Owners viewing their own public templates see the
+  // Use-template CTA in the main toolbar instead.
+  const isPreviewContext =
+    !state.isOwner || state.workflowVisibility === "public";
+  if (workflowId && isPreviewContext) {
     return null;
   }
 
@@ -1362,12 +1380,9 @@ function ToolbarActions({
   };
 
   const triggerType = state.nodes.find((node) => node?.data?.type === "trigger")
-    ?.data?.config?.triggerType;
+    ?.data?.config?.triggerType as WorkflowTriggerEnum;
 
-  const shouldDisplayEnableWorkflowSwitch =
-    triggerType === WorkflowTriggerEnum.EVENT ||
-    triggerType === WorkflowTriggerEnum.SCHEDULE ||
-    triggerType === WorkflowTriggerEnum.BLOCK;
+  const shouldDisplayEnableWorkflowSwitch = shouldShowEnableSwitch(triggerType);
 
   return (
     <>
@@ -1528,39 +1543,38 @@ function DownloadButton({
   state: ReturnType<typeof useWorkflowState>;
   actions: ReturnType<typeof useWorkflowActions>;
 }) {
-  const { open: openOverlay } = useOverlay();
-
-  const handleClick = () => {
-    openOverlay(ExportWorkflowOverlay, {
-      onExport: actions.handleDownload,
-      isDownloading: state.isDownloading,
-    });
-  };
+  const [ioOpen, setIoOpen] = useState(false);
 
   return (
-    <Button
-      className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-      disabled={
-        state.isDownloading ||
-        state.nodes.length === 0 ||
-        state.isGenerating ||
-        !state.currentWorkflowId
-      }
-      onClick={handleClick}
-      size="icon"
-      title={
-        state.isDownloading
-          ? "Preparing download..."
-          : "Export workflow as code"
-      }
-      variant="secondary"
-    >
-      {state.isDownloading ? (
-        <Loader2 className="size-4 animate-spin" />
-      ) : (
-        <Download className="size-4" />
-      )}
-    </Button>
+    <>
+      <Button
+        className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
+        disabled={
+          state.isDownloading ||
+          state.nodes.length === 0 ||
+          state.isGenerating ||
+          !state.currentWorkflowId
+        }
+        onClick={() => setIoOpen(true)}
+        size="icon"
+        title={
+          state.isDownloading ? "Exporting..." : "Export workflow as JSON"
+        }
+        variant="secondary"
+      >
+        {state.isDownloading ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Download className="size-4" />
+        )}
+      </Button>
+      <WorkflowIOOverlay
+        isDownloading={state.isDownloading}
+        onExport={actions.handleDownload}
+        onOpenChange={setIoOpen}
+        open={ioOpen}
+      />
+    </>
   );
 }
 
@@ -1725,12 +1739,12 @@ function RunButtonGroup({
   return button;
 }
 
-// Read-only badge - pill with a live green accent on the toolbar
+// Read-only badge - pill with a strong accent outline on the toolbar
 function ReadOnlyBadge({ className }: { className?: string }) {
   return (
     <Badge
       className={cn(
-        "border-keeperhub-green/60 bg-keeperhub-green/10 font-medium text-foreground/90 uppercase backdrop-blur-sm dark:border-keeperhub-green/50 dark:bg-transparent",
+        "border-2 border-[var(--color-text-accent)]/60 bg-[var(--color-bg-accent)]/10 font-semibold text-[var(--color-text-accent)] text-xs uppercase tracking-wider backdrop-blur-sm dark:border-[var(--color-text-accent)]/50 dark:bg-transparent",
         className
       )}
       variant="outline"
@@ -1740,30 +1754,35 @@ function ReadOnlyBadge({ className }: { className?: string }) {
   );
 }
 
-// Duplicate Button Component - placed next to Sign In for non-owners
-function DuplicateButton({
-  isDuplicating,
-  onDuplicate,
+// Use-template Button — placed next to Sign In for non-owners (HUB-01, HUB-02).
+function UseTemplateButton({
+  isUsingTemplate,
+  onUseTemplate,
 }: {
-  isDuplicating: boolean;
-  onDuplicate: () => void;
+  isUsingTemplate: boolean;
+  onUseTemplate: () => void;
 }) {
   return (
-    <Button
-      className="h-9 border hover:bg-black/5 dark:hover:bg-white/5"
-      disabled={isDuplicating}
-      onClick={onDuplicate}
-      size="sm"
-      title="Duplicate to your workflows"
-      variant="secondary"
+    <button
+      aria-label="Use this workflow as a template"
+      className="inline-flex h-8 items-center rounded-md border px-2.5 font-normal text-xs transition-colors duration-150 hover:bg-[var(--color-bg-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-border-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 motion-reduce:transition-none"
+      data-analytics="template_use_clicked"
+      disabled={isUsingTemplate}
+      onClick={onUseTemplate}
+      style={{
+        borderColor: "color-mix(in oklab, var(--color-text-accent) 50%, transparent)",
+        color: "var(--color-text-accent)",
+      }}
+      title="Use this workflow as a template in your account"
+      type="button"
     >
-      {isDuplicating ? (
-        <Loader2 className="mr-2 size-4 animate-spin" />
+      {isUsingTemplate ? (
+        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
       ) : (
-        <Copy className="mr-2 size-4" />
+        <Copy className="mr-1.5 size-3.5" />
       )}
-      Duplicate
-    </Button>
+      {isUsingTemplate ? "Importing…" : "Use template"}
+    </button>
   );
 }
 
@@ -1781,7 +1800,7 @@ function WorkflowMenuComponent({
 
   return (
     <div className="flex flex-col gap-1">
-      {isWorkflowRoute && workflowId && !state.isOwner && (
+      {isWorkflowRoute && workflowId && (state.workflowVisibility === "public" || !state.isOwner) && (
         <ReadOnlyBadge className="lg:hidden" />
       )}
     </div>
@@ -1801,6 +1820,14 @@ export const WorkflowToolbar = ({
 
   const pathname = usePathname();
   const isWorkflowRoute = pathname.startsWith("/workflows/");
+
+  // NAV-04 / NAV-05: do not mount OrgSwitcher for anonymous or signed-out users.
+  // The hooks inside OrgSwitcher (better-auth `useActiveOrganization`,
+  // `useOrganizations`) auto-fire protected fetches before any internal
+  // null-render can short-circuit them, so the only way to keep the network
+  // log clean on initial load is to skip mounting entirely.
+  const showOrgSwitcher =
+    !!state.session?.user && !isAnonymousUser(state.session.user);
 
   // If persistent mode, use fixed positioning
   const containerClassName = persistent
@@ -1832,17 +1859,27 @@ export const WorkflowToolbar = ({
               </a>
             ) : null;
           })()}
-          <div className="hidden ml-2 lg:block">
-            <OrgSwitcher />
-          </div>
+          {showOrgSwitcher && (
+            <div className="hidden ml-2 lg:block">
+              <OrgSwitcher />
+            </div>
+          )}
           <WorkflowMenuComponent
             actions={actions}
             state={state}
             workflowId={effectiveWorkflowId}
           />
-          {isWorkflowRoute && effectiveWorkflowId && !state.isOwner && (
-            <ReadOnlyBadge className="hidden lg:inline-flex" />
-          )}
+          {isWorkflowRoute &&
+            effectiveWorkflowId &&
+            (state.workflowVisibility === "public" || !state.isOwner) && (
+              <>
+                <ReadOnlyBadge className="hidden lg:inline-flex" />
+                <UseTemplateButton
+                  isUsingTemplate={state.isDuplicating}
+                  onUseTemplate={actions.handleUseTemplate}
+                />
+              </>
+            )}
         </div>
 
         {/* Right side: Actions + User Menu */}
@@ -1857,12 +1894,6 @@ export const WorkflowToolbar = ({
             )}
             <div className="flex items-center gap-2">
               <WalletToolbarButton />
-              {isWorkflowRoute && effectiveWorkflowId && !state.isOwner && (
-                <DuplicateButton
-                  isDuplicating={state.isDuplicating}
-                  onDuplicate={actions.handleDuplicate}
-                />
-              )}
               <UserMenu />
             </div>
           </div>
@@ -1887,17 +1918,27 @@ export const WorkflowToolbar = ({
               </a>
             ) : null;
           })()}
-          <div className="hidden ml-2 lg:block">
-            <OrgSwitcher />
-          </div>
+          {showOrgSwitcher && (
+            <div className="hidden ml-2 lg:block">
+              <OrgSwitcher />
+            </div>
+          )}
           <WorkflowMenuComponent
             actions={actions}
             state={state}
             workflowId={effectiveWorkflowId}
           />
-          {isWorkflowRoute && effectiveWorkflowId && !state.isOwner && (
-            <ReadOnlyBadge className="hidden lg:inline-flex" />
-          )}
+          {isWorkflowRoute &&
+            effectiveWorkflowId &&
+            (state.workflowVisibility === "public" || !state.isOwner) && (
+              <>
+                <ReadOnlyBadge className="hidden lg:inline-flex" />
+                <UseTemplateButton
+                  isUsingTemplate={state.isDuplicating}
+                  onUseTemplate={actions.handleUseTemplate}
+                />
+              </>
+            )}
         </div>
       </Panel>
 
@@ -1911,12 +1952,6 @@ export const WorkflowToolbar = ({
             />
           )}
           <div className="flex items-center gap-2">
-            {isWorkflowRoute && effectiveWorkflowId && !state.isOwner && (
-              <DuplicateButton
-                isDuplicating={state.isDuplicating}
-                onDuplicate={actions.handleDuplicate}
-              />
-            )}
             <UserMenu />
           </div>
         </div>

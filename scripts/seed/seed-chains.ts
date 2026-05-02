@@ -149,20 +149,20 @@ const DEFAULT_CHAINS: NewChain[] = [
     defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "base-testnet" }),
   },
   {
-    chainId: getChainConfigValue("tempo-testnet", "chainId", 42_429),
+    chainId: getChainConfigValue("tempo-testnet", "chainId", 42_431),
     name: "Tempo Testnet",
     symbol: getChainConfigValue("tempo-testnet", "symbol", "TEMPO"),
     chainType: "evm",
-    defaultPrimaryRpc: getRpcUrlByChainId(42_429, "primary"),
-    defaultFallbackRpc: getRpcUrlByChainId(42_429, "fallback"),
+    defaultPrimaryRpc: getRpcUrlByChainId(42_431, "primary"),
+    defaultFallbackRpc: getRpcUrlByChainId(42_431, "fallback"),
     defaultPrimaryWss: getWssUrl({
       rpcConfig,
-      jsonKey: CHAIN_CONFIG[42_429].jsonKey,
+      jsonKey: CHAIN_CONFIG[42_431].jsonKey,
       type: "primary",
     }),
     defaultFallbackWss: getWssUrl({
       rpcConfig,
-      jsonKey: CHAIN_CONFIG[42_429].jsonKey,
+      jsonKey: CHAIN_CONFIG[42_431].jsonKey,
       type: "fallback",
     }),
     isTestnet: getChainConfigValue("tempo-testnet", "isTestnet", true),
@@ -414,9 +414,10 @@ const DEFAULT_CHAINS: NewChain[] = [
     usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "plasma-testnet" }),
     defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "plasma-testnet" }),
   },
+  // 0G chains
   {
     chainId: getChainConfigValue("0g-mainnet", "chainId", 16_661),
-    name: "0G Mainnet",
+    name: "0G",
     symbol: getChainConfigValue("0g-mainnet", "symbol", "0G"),
     chainType: "evm",
     defaultPrimaryRpc: getRpcUrlByChainId(16_661, "primary"),
@@ -437,9 +438,9 @@ const DEFAULT_CHAINS: NewChain[] = [
     defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-mainnet" }),
   },
   {
-    chainId: getChainConfigValue("0g-testnet", "chainId", 16_602),
-    name: "0G Galileo Testnet",
-    symbol: getChainConfigValue("0g-testnet", "symbol", "0G"),
+    chainId: getChainConfigValue("0g-galileo", "chainId", 16_602),
+    name: "0G Galileo",
+    symbol: getChainConfigValue("0g-galileo", "symbol", "0G"),
     chainType: "evm",
     defaultPrimaryRpc: getRpcUrlByChainId(16_602, "primary"),
     defaultFallbackRpc: getRpcUrlByChainId(16_602, "fallback"),
@@ -453,10 +454,10 @@ const DEFAULT_CHAINS: NewChain[] = [
       jsonKey: CHAIN_CONFIG[16_602].jsonKey,
       type: "fallback",
     }),
-    isTestnet: getChainConfigValue("0g-testnet", "isTestnet", true),
-    isEnabled: getChainConfigValue("0g-testnet", "isEnabled", true),
-    usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "0g-testnet" }),
-    defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-testnet" }),
+    isTestnet: getChainConfigValue("0g-galileo", "isTestnet", true),
+    isEnabled: getChainConfigValue("0g-galileo", "isEnabled", true),
+    usePrivateMempoolRpc: getUsePrivateMempoolRpc({ rpcConfig, jsonKey: "0g-galileo" }),
+    defaultPrivateRpcUrl: getPrivateRpcUrl({ rpcConfig, jsonKey: "0g-galileo" }),
   },
   // Solana chains (non-EVM - uses SolanaProviderManager)
   {
@@ -554,11 +555,11 @@ const EXPLORER_CONFIG_TEMPLATES: Record<
     explorerContractPath: "/address/{address}#code",
   },
   // Tempo Testnet - Blockscout
-  42429: {
+  42431: {
     chainType: "evm",
-    explorerUrl: "https://explorer.testnet.tempo.xyz",
+    explorerUrl: "https://explore.testnet.tempo.xyz",
     explorerApiType: "blockscout",
-    explorerApiUrl: "https://explorer.testnet.tempo.xyz/api",
+    explorerApiUrl: "https://explore.testnet.tempo.xyz/api",
     explorerTxPath: "/tx/{hash}",
     explorerAddressPath: "/address/{address}",
     explorerContractPath: "/address/{address}?tab=contract",
@@ -673,25 +674,25 @@ const EXPLORER_CONFIG_TEMPLATES: Record<
     explorerAddressPath: "/address/{address}",
     explorerContractPath: "/address/{address}#code",
   },
-  // 0G Mainnet - Chainscan (Blockscout-family)
-  16_661: {
+  // 0G Mainnet - ConfluxScan-derived explorer with Etherscan-compat API at /open/api
+  16661: {
     chainType: "evm",
     explorerUrl: "https://chainscan.0g.ai",
-    explorerApiType: "blockscout",
-    explorerApiUrl: "https://chainscan.0g.ai/api",
+    explorerApiType: "etherscan",
+    explorerApiUrl: "https://chainscan.0g.ai/open/api",
     explorerTxPath: "/tx/{hash}",
     explorerAddressPath: "/address/{address}",
-    explorerContractPath: "/address/{address}?tab=contract",
+    explorerContractPath: "/address/{address}?tab=contract-viewer",
   },
-  // 0G Galileo Testnet - Chainscan (Blockscout-family)
-  16_602: {
+  // 0G Galileo Testnet - ConfluxScan-derived explorer with Etherscan-compat API at /open/api
+  16602: {
     chainType: "evm",
     explorerUrl: "https://chainscan-galileo.0g.ai",
-    explorerApiType: "blockscout",
-    explorerApiUrl: "https://chainscan-galileo.0g.ai/api",
+    explorerApiType: "etherscan",
+    explorerApiUrl: "https://chainscan-galileo.0g.ai/open/api",
     explorerTxPath: "/tx/{hash}",
     explorerAddressPath: "/address/{address}",
-    explorerContractPath: "/address/{address}?tab=contract",
+    explorerContractPath: "/address/{address}?tab=contract-viewer",
   },
   // Solana Mainnet - Solscan
   101: {
@@ -769,7 +770,7 @@ async function seedChains() {
     "Ethereum Sepolia": 11_155_111,
     Base: 8453,
     "Base Sepolia": 84_532,
-    "Tempo Testnet": 42_429,
+    "Tempo Testnet": 42_431,
     Tempo: 4217,
     "BNB Chain": 56,
     "BNB Chain Testnet": 97,
@@ -781,8 +782,8 @@ async function seedChains() {
     "Avalanche Fuji": 43_113,
     Plasma: 9745,
     "Plasma Testnet": 9746,
-    "0G Mainnet": 16_661,
-    "0G Galileo Testnet": 16_602,
+    "0G": 16_661,
+    "0G Galileo": 16_602,
     Solana: 101,
     "Solana Devnet": 103,
   };
