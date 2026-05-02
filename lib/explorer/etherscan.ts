@@ -189,6 +189,21 @@ const ETHERSCAN_TX_PAGE_SIZE = 10_000;
 const MAX_PAGES = 5;
 const ETHERSCAN_PAGE_DELAY_MS = 220;
 
+// Per-chain overrides for the txlist `offset` (page size). Real Etherscan
+// accepts up to 10,000 per page, but some forked explorers cap it lower —
+// e.g. 0G's chainscan rejects offset > 100 with "Parameter <offset> exceeds
+// 100". Keep this map small; if more chains end up here, promote it to
+// `explorer_configs` with a migration.
+const TX_PAGE_SIZE_OVERRIDES: Record<number, number> = {
+  16_601: 100, // 0G Galileo (legacy chain id)
+  16_602: 100, // 0G Galileo
+  16_661: 100, // 0G Mainnet
+};
+
+function getTxPageSize(chainId: number): number {
+  return TX_PAGE_SIZE_OVERRIDES[chainId] ?? ETHERSCAN_TX_PAGE_SIZE;
+}
+
 type TxPageResult =
   | { done: false; transactions: EtherscanTransaction[] }
   | { done: true; transactions: EtherscanTransaction[] }
@@ -211,7 +226,7 @@ function buildTxListParams(
     startblock: startBlock.toString(),
     endblock: endBlock.toString(),
     page: page.toString(),
-    offset: ETHERSCAN_TX_PAGE_SIZE.toString(),
+    offset: getTxPageSize(chainId).toString(),
     sort: "asc",
   });
 
@@ -236,7 +251,10 @@ function isEmptyTxListResult(data: EtherscanTxListResponse): boolean {
   );
 }
 
-function parseTxListResponse(data: EtherscanTxListResponse): TxPageResult {
+function parseTxListResponse(
+  data: EtherscanTxListResponse,
+  pageSize: number,
+): TxPageResult {
   if (data.status !== "1") {
     if (isEmptyTxListResult(data)) {
       return { done: true, transactions: [] };
@@ -251,7 +269,7 @@ function parseTxListResponse(data: EtherscanTxListResponse): TxPageResult {
     return { done: true, transactions: [] };
   }
 
-  const hasMore = data.result.length >= ETHERSCAN_TX_PAGE_SIZE;
+  const hasMore = data.result.length >= pageSize;
   return { done: !hasMore, transactions: data.result };
 }
 
@@ -301,7 +319,7 @@ export async function fetchEtherscanTransactions(
     try {
       const response = await fetch(url);
       const data: EtherscanTxListResponse = await response.json();
-      const result = parseTxListResponse(data);
+      const result = parseTxListResponse(data, getTxPageSize(chainId));
 
       if ("error" in result) {
         return { success: false, error: result.error };
