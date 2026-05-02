@@ -212,7 +212,9 @@ describe("inferenceStep", () => {
       chatId: "chat_1",
       verified: true,
     });
-    expect(acknowledgeProviderSigner).toHaveBeenCalledWith("0x0000000000000000000000000000000000000001");
+    expect(acknowledgeProviderSigner).toHaveBeenCalledWith(
+      "0x0000000000000000000000000000000000000001"
+    );
     expect(getRequestHeaders).toHaveBeenCalled();
     expect(buildBrokerContextMock).toHaveBeenCalledWith({}, "org_1", "user_1");
   });
